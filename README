@@ -1,0 +1,27 @@
+# MSEller Firebase Cloud Functions
+
+Handle new user creation and administration
+
+## Installation
+
+ 
+```bash
+npm install -g firebase-tools
+```
+
+## Usage
+
+Go to functions directory and run the following commands
+```bash
+npm run build   
+```
+For local test
+```bash
+firebase emulators:start   
+```
+```bash
+firebase deploy --only functions
+```
+
+## License
+[MIT](https://choosealicense.com/licenses/mit/)

@@ -19,16 +19,92 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addMessage = void 0;
+exports.removeUser = exports.updateUserPassword = exports.updateUser = exports.addUser = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
-exports.addMessage = functions.https.onRequest(async (req, res) => {
-    //res.send("fisrt fun..");
-    // Grab the text parameter.
-    const original = req.query.text;
-    // Push the new message into Cloud Firestore using the Firebase Admin SDK.
-    const writeResult = await admin.firestore().collection('messages').add({ original: original });
-    // Send back a message that we've succesfully written the message
-    res.json({ result: `Message with ID: ${writeResult.id} added.` });
+const USER_COLLECTION = 'users';
+exports.addUser = functions.https.onCall(async (data, context) => {
+    try {
+        const { email, password, photoURL, firstName, lastName } = data;
+        const displayName = `${firstName} ${lastName}`;
+        if (!email && !password) {
+            throw Error('email and password are mandatory');
+        }
+        const userRecord = await admin.auth().createUser({
+            email,
+            emailVerified: true,
+            password,
+            displayName,
+            photoURL: photoURL ? photoURL : null,
+            disabled: false
+        });
+        if (userRecord) {
+            delete data.password;
+            await admin.firestore()
+                .collection(USER_COLLECTION)
+                .doc(userRecord.uid)
+                .set(Object.assign(Object.assign({}, data), { business: data.businessId }));
+            console.log('Successfully created new user:', userRecord.uid);
+        }
+        return ({ result: 'user created', userId: userRecord.uid });
+    }
+    catch (error) {
+        throw new functions.https.HttpsError("invalid-argument", error.message);
+    }
+});
+exports.updateUser = functions.https.onCall(async (data, context) => {
+    try {
+        const { userId, email, photoURL, firstName, lastName, status } = data;
+        const displayName = `${firstName} ${lastName}`;
+        if (!userId) {
+            throw new functions.https.HttpsError('invalid-argument', 'userId is mandatory userId: ' + userId);
+        }
+        await admin.auth().updateUser(userId, {
+            email,
+            emailVerified: true,
+            displayName,
+            photoURL: photoURL ? photoURL : null,
+            disabled: !!status
+        });
+        delete data.password;
+        await admin.firestore()
+            .collection(USER_COLLECTION)
+            .doc(userId)
+            .set(Object.assign({}, data));
+        return { result: 'user updated', userId: userId };
+    }
+    catch (error) {
+        throw new functions.https.HttpsError("invalid-argument", error.message);
+    }
+});
+exports.updateUserPassword = functions.https.onCall(async (data, context) => {
+    try {
+        const { userId, password } = data;
+        if (!userId && !password) {
+            throw Error('userId is mandatory');
+        }
+        await admin.auth().updateUser(userId, {
+            password
+        });
+        console.log('Successfully password updated:', userId);
+        return { result: 'password updated' };
+    }
+    catch (error) {
+        throw new functions.https.HttpsError("invalid-argument", error.message);
+    }
+});
+exports.removeUser = functions.https.onCall(async (data, context) => {
+    try {
+        const { userId, password } = data;
+        if (!userId && !password) {
+            throw Error('userId is mandatory');
+        }
+        await admin.auth().deleteUser(userId);
+        console.log('Successfully user removed:', userId);
+        return ({ result: 'user removed' });
+    }
+    catch (error) {
+        throw new functions.https.HttpsError("invalid-argument", error.message);
+    }
 });
 //# sourceMappingURL=users.js.map

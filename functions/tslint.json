@@ -1,5 +1,6 @@
 {
   "rules": {
+    "no-unused-vars": false,
     // -- Strict errors --
     // These lint rules are likely always a good idea.
 
