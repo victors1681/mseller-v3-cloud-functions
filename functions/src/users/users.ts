@@ -62,7 +62,7 @@ const USER_COLLECTION = 'users';
     });
 
       delete data.password; 
-     
+     console.log("datadata", data)
         await admin.firestore()
         .collection(USER_COLLECTION)
         .doc(userId)
@@ -107,29 +107,30 @@ const USER_COLLECTION = 'users';
 
       await admin.auth().deleteUser(userId);
       console.log('Successfully user removed:', userId); 
-         return ({ result: 'user removed'});
+      return ({ result: 'user removed'});
      
   }catch(error){
     throw new functions.https.HttpsError(  "invalid-argument", error.message)
     }
   });
 
-  export const userById = functions.https.onCall(async (data, context) => {
+  export const userById = functions.https.onCall(async (userId, context) => {
 
     try{ 
-      const {userId} = data; 
-
+     
       if(!userId){
         throw Error('userId is mandatory');
       }
 
-      const userRecord = await admin.auth().getUser(userId);
-
-      const moreUserInfo = await admin.firestore().collection(USER_COLLECTION).doc(userId);
+      const {disabled, email, photoURL}  = await admin.auth().getUser(userId);
+      const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
+      const userData = snapshot.data();
       
-      return {...moreUserInfo, ...userRecord.toJSON()}
+      if(userData && userData.empty){
+        throw new functions.https.HttpsError('not-found', 'user not found');
+      }
+      return { ...userData, disabled, email, photoURL, userId}
  
-     
   }catch(error){
     throw new functions.https.HttpsError(  "invalid-argument", error.message)
     }

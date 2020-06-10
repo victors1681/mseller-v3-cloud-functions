@@ -15,9 +15,9 @@ Go to functions directory and run the following commands
 ```bash
 npm run build   
 ```
-For local test
+To use the local emulators
 ```bash
-firebase emulators:start   
+ npm run serve  
 ```
 ```bash
 firebase deploy --only functions

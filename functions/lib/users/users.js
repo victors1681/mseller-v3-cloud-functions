@@ -19,7 +19,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeUser = exports.updateUserPassword = exports.updateUser = exports.addUser = void 0;
+exports.userById = exports.removeUser = exports.updateUserPassword = exports.updateUser = exports.addUser = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const USER_COLLECTION = 'users';
@@ -54,7 +54,7 @@ exports.addUser = functions.https.onCall(async (data, context) => {
 });
 exports.updateUser = functions.https.onCall(async (data, context) => {
     try {
-        const { userId, email, photoURL, firstName, lastName, status } = data;
+        const { userId, email, photoURL, firstName, lastName, disabled } = data;
         const displayName = `${firstName} ${lastName}`;
         if (!userId) {
             throw new functions.https.HttpsError('invalid-argument', 'userId is mandatory userId: ' + userId);
@@ -64,9 +64,10 @@ exports.updateUser = functions.https.onCall(async (data, context) => {
             emailVerified: true,
             displayName,
             photoURL: photoURL ? photoURL : null,
-            disabled: !!status
+            disabled: !!disabled
         });
         delete data.password;
+        console.log("datadata", data);
         await admin.firestore()
             .collection(USER_COLLECTION)
             .doc(userId)
@@ -102,6 +103,23 @@ exports.removeUser = functions.https.onCall(async (data, context) => {
         await admin.auth().deleteUser(userId);
         console.log('Successfully user removed:', userId);
         return ({ result: 'user removed' });
+    }
+    catch (error) {
+        throw new functions.https.HttpsError("invalid-argument", error.message);
+    }
+});
+exports.userById = functions.https.onCall(async (userId, context) => {
+    try {
+        if (!userId) {
+            throw Error('userId is mandatory');
+        }
+        const { disabled, email, photoURL } = await admin.auth().getUser(userId);
+        const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
+        const userData = snapshot.data();
+        if (userData && userData.empty) {
+            throw new functions.https.HttpsError('not-found', 'user not found');
+        }
+        return Object.assign(Object.assign({}, userData), { disabled, email, photoURL, userId });
     }
     catch (error) {
         throw new functions.https.HttpsError("invalid-argument", error.message);
