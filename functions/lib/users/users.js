@@ -67,7 +67,6 @@ exports.updateUser = functions.https.onCall(async (data, context) => {
             disabled: !!disabled
         });
         delete data.password;
-        console.log("datadata", data);
         await admin.firestore()
             .collection(USER_COLLECTION)
             .doc(userId)

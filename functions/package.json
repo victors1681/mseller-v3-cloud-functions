@@ -1,14 +1,16 @@
 {
   "name": "functions",
   "scripts": {
-    "lint": "tslint --project tsconfig.json",
+    "lint": "tslint --project tsconfig.json --fix",
     "build": "tsc",
     "serve:f": "npm run build && firebase emulators:start --only functions",
-    "serve": "npm run build && firebase emulators:start",
+    "serve": "npm run prettier-format && npm run build && firebase emulators:start",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "tslint-check": "tslint-config-prettier-check ./tslint.json",
+    "prettier-format": "prettier --config .prettierrc.js 'src/**/*.ts' --write"
   },
   "engines": {
     "node": "8"

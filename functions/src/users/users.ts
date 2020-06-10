@@ -1,136 +1,123 @@
+import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
-import * as admin from "firebase-admin";
-
 
 const USER_COLLECTION = 'users';
 
-  export const addUser = functions.https.onCall(async (data, context) => {
+export const addUser = functions.https.onCall(async (data, context) => {
+    try {
+        const { email, password, photoURL, firstName, lastName } = data;
+        const displayName = `${firstName} ${lastName}`;
 
-    try{
-       
-      const { email, password, photoURL, firstName, lastName} = data;
-      const displayName = `${firstName} ${lastName}`;
+        if (!email && !password) {
+            throw Error('email and password are mandatory');
+        }
 
-      if(!email && !password){
-        throw Error('email and password are mandatory');
-      }
+        const userRecord = await admin.auth().createUser({
+            email,
+            emailVerified: true,
+            password,
+            displayName,
+            photoURL: photoURL ? photoURL : null,
+            disabled: false,
+        });
 
-    const userRecord = await admin.auth().createUser({
-      email,
-      emailVerified: true,
-      password,
-      displayName,
-      photoURL: photoURL? photoURL : null,
-      disabled: false
-    });
+        if (userRecord) {
+            delete data.password;
 
-    if(userRecord){
-      delete data.password; 
-     
-        await admin.firestore()
-        .collection(USER_COLLECTION)
-        .doc(userRecord.uid)
-        .set({ ...data, business: data.businessId });
+            await admin
+                .firestore()
+                .collection(USER_COLLECTION)
+                .doc(userRecord.uid)
+                .set({ ...data, business: data.businessId });
 
-        console.log('Successfully created new user:', userRecord.uid); 
+            console.log('Successfully created new user:', userRecord.uid);
+        }
+        return { result: 'user created', userId: userRecord.uid };
+    } catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
     }
-    return ({ result: 'user created', userId: userRecord.uid});
-  }catch(error){ 
-    throw new functions.https.HttpsError(  "invalid-argument", error.message)
-    }
-  });
-
-
-  export const updateUser = functions.https.onCall(async (data, context) => {
-  
-    try{
-  
-      const {userId, email, photoURL, firstName, lastName, disabled} = data;
-      const displayName = `${firstName} ${lastName}`;
-
-      if(!userId){
-        throw new functions.https.HttpsError('invalid-argument', 'userId is mandatory userId: ' + userId);
-      }
- 
-
-    await admin.auth().updateUser(userId, {
-      email,
-      emailVerified: true,
-      displayName,
-      photoURL: photoURL? photoURL : null,
-      disabled: !!disabled
-    });
-
-                     delete data.password; 
-        await admin.firestore()
-          .collection(USER_COLLECTION)
-        .doc(userId)
-        .set({ ...data });
-         
-     return { result: 'user updated', userId: userId};
- 
-  }catch(error){
-   throw new functions.https.HttpsError(  "invalid-argument", error.message)
-  }
 });
 
-  export const updateUserPassword = functions.https.onCall(async (data, context) => {
+export const updateUser = functions.https.onCall(async (data, context) => {
+    try {
+        const { userId, email, photoURL, firstName, lastName, disabled } = data;
+        const displayName = `${firstName} ${lastName}`;
 
-    try{ 
-      const {userId, password} = data; 
+        if (!userId) {
+            throw new functions.https.HttpsError('invalid-argument', 'userId is mandatory userId: ' + userId);
+        }
 
-      if(!userId && !password){
-        throw Error('userId is mandatory');
-      }
+        await admin.auth().updateUser(userId, {
+            email,
+            emailVerified: true,
+            displayName,
+            photoURL: photoURL ? photoURL : null,
+            disabled: !!disabled,
+        });
 
-    await admin.auth().updateUser(userId, {
-      password
-    }); 
-    
-    console.log('Successfully password updated:', userId); 
-        return { result: 'password updated'};
-        
-  }catch(error){
-    throw new functions.https.HttpsError(  "invalid-argument", error.message)
+        delete data.password;
+        await admin
+            .firestore()
+            .collection(USER_COLLECTION)
+            .doc(userId)
+            .set({ ...data });
+
+        return { result: 'user updated', userId };
+    } catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
     }
-  });
+});
 
-  export const removeUser = functions.https.onCall(async (data, context) => {
+export const updateUserPassword = functions.https.onCall(async (data, context) => {
+    try {
+        const { userId, password } = data;
 
-    try{ 
-      const {userId, password} = data; 
+        if (!userId && !password) {
+            throw Error('userId is mandatory');
+        }
 
-      if(!userId && !password){
-        throw Error('userId is mandatory');
-      }
+        await admin.auth().updateUser(userId, {
+            password,
+        });
 
-      await admin.auth().deleteUser(userId);
-      console.log('Successfully user removed:', userId); 
-      return ({ result: 'user removed'});
-     
-  }catch(error){
-    throw new functions.https.HttpsError(  "invalid-argument", error.message)
+        console.log('Successfully password updated:', userId);
+        return { result: 'password updated' };
+    } catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
     }
-  });
+});
 
-  export const userById = functions.https.onCall(async (userId, context) => {
+export const removeUser = functions.https.onCall(async (data, context) => {
+    try {
+        const { userId, password } = data;
 
-    try{ 
-     
-      if(!userId){
-        throw Error('userId is mandatory');
-      }
+        if (!userId && !password) {
+            throw Error('userId is mandatory');
+        }
 
-      const {disabled, email, photoURL}  = await admin.auth().getUser(userId);
-      const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
-      const userData = snapshot.data();
-      
-      if(userData && userData.empty){
-        throw new functions.https.HttpsError('not-found', 'user not found');
-      }
-      return { ...userData, disabled, email, photoURL, userId}
- 
-  }catch(error){
-    throw new functions.https.HttpsError(  "invalid-argument", error.message)
+        await admin.auth().deleteUser(userId);
+        console.log('Successfully user removed:', userId);
+        return { result: 'user removed' };
+    } catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
     }
-  });
+});
+
+export const userById = functions.https.onCall(async (userId, context) => {
+    try {
+        if (!userId) {
+            throw Error('userId is mandatory');
+        }
+
+        const { disabled, email, photoURL } = await admin.auth().getUser(userId);
+        const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
+        const userData = snapshot.data();
+
+        if (userData && userData.empty) {
+            throw new functions.https.HttpsError('not-found', 'user not found');
+        }
+        return { ...userData, disabled, email, photoURL, userId };
+    } catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
