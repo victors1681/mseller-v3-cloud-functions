@@ -112,5 +112,9 @@
     "trailing-comma": {"severity": "warning"}
   },
 
-  "defaultSeverity": "error"
+  "defaultSeverity": "error",
+  "extends": [
+    "tslint:latest",
+    "tslint-config-prettier"
+  ]
 }

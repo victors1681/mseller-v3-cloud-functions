@@ -61,10 +61,9 @@ const USER_COLLECTION = 'users';
       disabled: !!disabled
     });
 
-      delete data.password; 
-     console.log("datadata", data)
+                     delete data.password; 
         await admin.firestore()
-        .collection(USER_COLLECTION)
+          .collection(USER_COLLECTION)
         .doc(userId)
         .set({ ...data });
          
