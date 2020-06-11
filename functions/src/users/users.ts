@@ -3,13 +3,48 @@ import * as functions from 'firebase-functions';
 
 const USER_COLLECTION = 'users';
 
-export const addUser = functions.https.onCall(async (data, context) => {
+enum UserTypeEnum {
+  seller= "seller",
+  administrator = "administrator",
+  superuser ="superuser"
+}
+
+/**
+ * based on the context it will ge the info information coming from the request
+ * @param context 
+ */
+export const getCurrentUserInfo = async (context: functions.https.CallableContext): Promise<IUser> => {
+  const userId = context.auth?.uid
+
+  if(!userId){
+      throw new functions.https.HttpsError("invalid-argument", "unable to find the user id");
+  }
+
+  const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
+  const userData = snapshot.data();
+
+  if (userData && userData.empty) {
+      throw new functions.https.HttpsError('not-found', 'user not found');
+  }
+  return { ...userData, userId } as IUser;
+
+}
+
+export const addUser = functions.https.onCall(async (data: IUser, context) => {
     try {
         const { email, password, photoURL, firstName, lastName } = data;
         const displayName = `${firstName} ${lastName}`;
 
         if (!email && !password) {
             throw Error('email and password are mandatory');
+        }
+
+        const requestedUser = await getCurrentUserInfo(context);
+        if(!requestedUser){
+          throw Error('email and password are mandatory');
+        }
+        if(data.type === UserTypeEnum.superuser && requestedUser.type !== UserTypeEnum.superuser){
+          throw Error('you do not have the role to create a power user');
         }
 
         const userRecord = await admin.auth().createUser({
@@ -108,6 +143,29 @@ export const userById = functions.https.onCall(async (userId, context) => {
         if (!userId) {
             throw Error('userId is mandatory');
         }
+
+        const { disabled, email, photoURL } = await admin.auth().getUser(userId);
+        const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
+        const userData = snapshot.data();
+
+        if (userData && userData.empty) {
+            throw new functions.https.HttpsError('not-found', 'user not found');
+        }
+        return { ...userData, disabled, email, photoURL, userId };
+    } catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
+
+export const usersByBusiness = functions.https.onCall(async (businessId, context) => {
+    try {
+        if (!businessId) {
+            throw Error('userId is mandatory');
+        }
+
+        const coreUsers = admin.auth().getUsers([
+          { uid: 'uid1' },
+        ])
 
         const { disabled, email, photoURL } = await admin.auth().getUser(userId);
         const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
