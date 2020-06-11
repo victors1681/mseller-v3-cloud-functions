@@ -21,19 +21,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
 var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !exports.hasOwnProperty(p)) __createBinding(exports, m, p);
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const admin = __importStar(require("firebase-admin"));
-const cors_1 = __importDefault(require("cors"));
-cors_1.default({ origin: true });
 const firebaseAccountCredentials = __importStar(require("./serviceAccountKey.json"));
 __exportStar(require("./users"), exports);
 const serviceAccount = firebaseAccountCredentials;
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://mobile-seller-v3.firebaseio.com"
+    databaseURL: 'https://mobile-seller-v3.firebaseio.com',
 });
-//admin.initializeApp();
 //# sourceMappingURL=index.js.map

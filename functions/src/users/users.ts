@@ -68,12 +68,11 @@ export const updateUser = functions.https.onCall(async (data, context) => {
     }
 });
 
-export const updateUserPassword = functions.https.onCall(async (data, context) => {
+export const updatePassword = functions.https.onCall(async ({ userId, password }, context) => {
     try {
-        const { userId, password } = data;
-
+  
         if (!userId && !password) {
-            throw Error('userId is mandatory');
+            throw Error('userId and password are mandatory');
         }
 
         await admin.auth().updateUser(userId, {
@@ -87,15 +86,16 @@ export const updateUserPassword = functions.https.onCall(async (data, context) =
     }
 });
 
-export const removeUser = functions.https.onCall(async (data, context) => {
+export const deleteUser = functions.https.onCall(async (userId, context) => {
     try {
-        const { userId, password } = data;
-
-        if (!userId && !password) {
+        if (!userId) {
             throw Error('userId is mandatory');
         }
 
         await admin.auth().deleteUser(userId);
+        //remove table..
+        await admin.firestore().collection(USER_COLLECTION).doc(userId).delete();
+
         console.log('Successfully user removed:', userId);
         return { result: 'user removed' };
     } catch (error) {

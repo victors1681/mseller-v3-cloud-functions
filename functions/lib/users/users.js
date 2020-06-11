@@ -19,9 +19,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userById = exports.removeUser = exports.updateUserPassword = exports.updateUser = exports.addUser = void 0;
-const functions = __importStar(require("firebase-functions"));
+exports.userById = exports.deleteUser = exports.updatePassword = exports.updateUser = exports.addUser = void 0;
 const admin = __importStar(require("firebase-admin"));
+const functions = __importStar(require("firebase-functions"));
 const USER_COLLECTION = 'users';
 exports.addUser = functions.https.onCall(async (data, context) => {
     try {
@@ -36,20 +36,21 @@ exports.addUser = functions.https.onCall(async (data, context) => {
             password,
             displayName,
             photoURL: photoURL ? photoURL : null,
-            disabled: false
+            disabled: false,
         });
         if (userRecord) {
             delete data.password;
-            await admin.firestore()
+            await admin
+                .firestore()
                 .collection(USER_COLLECTION)
                 .doc(userRecord.uid)
                 .set(Object.assign(Object.assign({}, data), { business: data.businessId }));
             console.log('Successfully created new user:', userRecord.uid);
         }
-        return ({ result: 'user created', userId: userRecord.uid });
+        return { result: 'user created', userId: userRecord.uid };
     }
     catch (error) {
-        throw new functions.https.HttpsError("invalid-argument", error.message);
+        throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });
 exports.updateUser = functions.https.onCall(async (data, context) => {
@@ -64,47 +65,48 @@ exports.updateUser = functions.https.onCall(async (data, context) => {
             emailVerified: true,
             displayName,
             photoURL: photoURL ? photoURL : null,
-            disabled: !!disabled
+            disabled: !!disabled,
         });
         delete data.password;
-        await admin.firestore()
+        await admin
+            .firestore()
             .collection(USER_COLLECTION)
             .doc(userId)
             .set(Object.assign({}, data));
-        return { result: 'user updated', userId: userId };
+        return { result: 'user updated', userId };
     }
     catch (error) {
-        throw new functions.https.HttpsError("invalid-argument", error.message);
+        throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });
-exports.updateUserPassword = functions.https.onCall(async (data, context) => {
+exports.updatePassword = functions.https.onCall(async ({ userId, password }, context) => {
     try {
-        const { userId, password } = data;
         if (!userId && !password) {
-            throw Error('userId is mandatory');
+            throw Error('userId and password are mandatory');
         }
         await admin.auth().updateUser(userId, {
-            password
+            password,
         });
         console.log('Successfully password updated:', userId);
         return { result: 'password updated' };
     }
     catch (error) {
-        throw new functions.https.HttpsError("invalid-argument", error.message);
+        throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });
-exports.removeUser = functions.https.onCall(async (data, context) => {
+exports.deleteUser = functions.https.onCall(async (userId, context) => {
     try {
-        const { userId, password } = data;
-        if (!userId && !password) {
+        if (!userId) {
             throw Error('userId is mandatory');
         }
         await admin.auth().deleteUser(userId);
+        //remove table..
+        await admin.firestore().collection(USER_COLLECTION).doc(userId).delete();
         console.log('Successfully user removed:', userId);
-        return ({ result: 'user removed' });
+        return { result: 'user removed' };
     }
     catch (error) {
-        throw new functions.https.HttpsError("invalid-argument", error.message);
+        throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });
 exports.userById = functions.https.onCall(async (userId, context) => {
@@ -121,7 +123,7 @@ exports.userById = functions.https.onCall(async (userId, context) => {
         return Object.assign(Object.assign({}, userData), { disabled, email, photoURL, userId });
     }
     catch (error) {
-        throw new functions.https.HttpsError("invalid-argument", error.message);
+        throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });
 //# sourceMappingURL=users.js.map
