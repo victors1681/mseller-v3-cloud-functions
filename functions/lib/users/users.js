@@ -19,16 +19,46 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userById = exports.deleteUser = exports.updatePassword = exports.updateUser = exports.addUser = void 0;
+exports.userById = exports.deleteUser = exports.updatePassword = exports.updateUser = exports.addUser = exports.getCurrentUserInfo = exports.UserTypeEnum = void 0;
 const admin = __importStar(require("firebase-admin"));
 const functions = __importStar(require("firebase-functions"));
 const USER_COLLECTION = 'users';
+var UserTypeEnum;
+(function (UserTypeEnum) {
+    UserTypeEnum["seller"] = "seller";
+    UserTypeEnum["administrator"] = "administrator";
+    UserTypeEnum["superuser"] = "superuser";
+})(UserTypeEnum = exports.UserTypeEnum || (exports.UserTypeEnum = {}));
+/**
+ * based on the context it will ge the info information coming from the request
+ * @param context
+ */
+exports.getCurrentUserInfo = async (context) => {
+    var _a;
+    const userId = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
+    if (!userId) {
+        throw new functions.https.HttpsError('invalid-argument', 'unable to find the user id');
+    }
+    const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
+    const userData = snapshot.data();
+    if (userData && userData.empty) {
+        throw new functions.https.HttpsError('not-found', 'user not found');
+    }
+    return Object.assign(Object.assign({}, userData), { userId });
+};
 exports.addUser = functions.https.onCall(async (data, context) => {
     try {
         const { email, password, photoURL, firstName, lastName } = data;
         const displayName = `${firstName} ${lastName}`;
         if (!email && !password) {
             throw Error('email and password are mandatory');
+        }
+        const requestedUser = await exports.getCurrentUserInfo(context);
+        if (!requestedUser) {
+            throw Error('email and password are mandatory');
+        }
+        if (data.type === UserTypeEnum.superuser && requestedUser.type !== UserTypeEnum.superuser) {
+            throw Error('you do not have the role to create a power user');
         }
         const userRecord = await admin.auth().createUser({
             email,
