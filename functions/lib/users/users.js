@@ -130,7 +130,7 @@ exports.deleteUser = functions.https.onCall(async (userId, context) => {
             throw Error('userId is mandatory');
         }
         await admin.auth().deleteUser(userId);
-        //remove table..
+        // remove table..
         await admin.firestore().collection(USER_COLLECTION).doc(userId).delete();
         console.log('Successfully user removed:', userId);
         return { result: 'user removed' };
@@ -141,6 +141,7 @@ exports.deleteUser = functions.https.onCall(async (userId, context) => {
 });
 exports.userById = functions.https.onCall(async (userId, context) => {
     try {
+        console.log("this is the uid", userId);
         if (!userId) {
             throw Error('userId is mandatory');
         }

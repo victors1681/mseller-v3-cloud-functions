@@ -137,7 +137,7 @@ export const deleteUser = functions.https.onCall(async (userId, context) => {
 });
 
 export const userById = functions.https.onCall(async (userId, context) => {
-    try {
+    try { 
         if (!userId) {
             throw Error('userId is mandatory');
         }
