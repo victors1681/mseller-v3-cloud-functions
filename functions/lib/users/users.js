@@ -19,10 +19,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userById = exports.deleteUser = exports.updatePassword = exports.updateUser = exports.addUser = exports.getCurrentUserInfo = exports.UserTypeEnum = void 0;
+exports.getUsersRelated = exports.userById = exports.deleteUser = exports.updatePassword = exports.updateUser = exports.addUser = exports.getUserById = exports.getCurrentUserInfo = exports.UserTypeEnum = exports.USER_COLLECTION = void 0;
 const admin = __importStar(require("firebase-admin"));
 const functions = __importStar(require("firebase-functions"));
-const USER_COLLECTION = 'users';
+exports.USER_COLLECTION = 'users';
 var UserTypeEnum;
 (function (UserTypeEnum) {
     UserTypeEnum["seller"] = "seller";
@@ -39,16 +39,29 @@ exports.getCurrentUserInfo = async (context) => {
     if (!userId) {
         throw new functions.https.HttpsError('invalid-argument', 'unable to find the user id');
     }
-    const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
-    const userData = snapshot.data();
-    if (userData && userData.empty) {
-        throw new functions.https.HttpsError('not-found', 'user not found');
+    const userData = await exports.getUserById(userId);
+    return userData;
+};
+/**
+ * get user information from the ID
+ * @param userId
+ */
+exports.getUserById = async (userId) => {
+    try {
+        const snapshot = await admin.firestore().collection(exports.USER_COLLECTION).doc(userId).get();
+        const userData = snapshot.data();
+        if (!userData) {
+            throw new functions.https.HttpsError('not-found', `user ${userId} not found ${userData}`);
+        }
+        return Object.assign(Object.assign({}, userData), { userId });
     }
-    return Object.assign(Object.assign({}, userData), { userId });
+    catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
 };
 exports.addUser = functions.https.onCall(async (data, context) => {
     try {
-        const { email, password, photoURL, firstName, lastName } = data;
+        const { email, password, firstName, lastName } = data;
         const displayName = `${firstName} ${lastName}`;
         if (!email && !password) {
             throw Error('email and password are mandatory');
@@ -65,16 +78,15 @@ exports.addUser = functions.https.onCall(async (data, context) => {
             emailVerified: true,
             password,
             displayName,
-            photoURL: photoURL ? photoURL : null,
             disabled: false,
         });
         if (userRecord) {
             delete data.password;
             await admin
                 .firestore()
-                .collection(USER_COLLECTION)
+                .collection(exports.USER_COLLECTION)
                 .doc(userRecord.uid)
-                .set(Object.assign(Object.assign({}, data), { business: data.businessId }));
+                .set(Object.assign(Object.assign({}, data), { business: data.business }));
             console.log('Successfully created new user:', userRecord.uid);
         }
         return { result: 'user created', userId: userRecord.uid };
@@ -100,7 +112,7 @@ exports.updateUser = functions.https.onCall(async (data, context) => {
         delete data.password;
         await admin
             .firestore()
-            .collection(USER_COLLECTION)
+            .collection(exports.USER_COLLECTION)
             .doc(userId)
             .set(Object.assign({}, data));
         return { result: 'user updated', userId };
@@ -131,7 +143,7 @@ exports.deleteUser = functions.https.onCall(async (userId, context) => {
         }
         await admin.auth().deleteUser(userId);
         // remove table..
-        await admin.firestore().collection(USER_COLLECTION).doc(userId).delete();
+        await admin.firestore().collection(exports.USER_COLLECTION).doc(userId).delete();
         console.log('Successfully user removed:', userId);
         return { result: 'user removed' };
     }
@@ -141,17 +153,38 @@ exports.deleteUser = functions.https.onCall(async (userId, context) => {
 });
 exports.userById = functions.https.onCall(async (userId, context) => {
     try {
-        console.log("this is the uid", userId);
         if (!userId) {
             throw Error('userId is mandatory');
         }
         const { disabled, email, photoURL } = await admin.auth().getUser(userId);
-        const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
+        const snapshot = await admin.firestore().collection(exports.USER_COLLECTION).doc(userId).get();
         const userData = snapshot.data();
         if (userData && userData.empty) {
             throw new functions.https.HttpsError('not-found', 'user not found');
         }
         return Object.assign(Object.assign({}, userData), { disabled, email, photoURL, userId });
+    }
+    catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
+/**
+ * based on the user request it get the user who is requesting and get the business id associated
+ */
+exports.getUsersRelated = functions.https.onCall(async (data, context) => {
+    try {
+        const requestedUser = await exports.getCurrentUserInfo(context);
+        if (!requestedUser.business) {
+            throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
+        }
+        const userRecords = await admin
+            .firestore()
+            .collection(exports.USER_COLLECTION)
+            .where('business', '==', requestedUser.business)
+            .get();
+        const usersWithId = userRecords.docs.map((doc) => (Object.assign({ userId: doc.id }, doc.data())));
+        console.log('users: ', usersWithId);
+        return usersWithId;
     }
     catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);

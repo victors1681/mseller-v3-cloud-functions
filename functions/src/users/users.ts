@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 
-const USER_COLLECTION = 'users';
+export const USER_COLLECTION = 'users';
 
 export enum UserTypeEnum {
     seller = 'seller',
@@ -20,18 +20,36 @@ export const getCurrentUserInfo = async (context: functions.https.CallableContex
         throw new functions.https.HttpsError('invalid-argument', 'unable to find the user id');
     }
 
-    const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
-    const userData = snapshot.data();
+    const userData = await getUserById(userId) 
 
-    if (userData && userData.empty) {
-        throw new functions.https.HttpsError('not-found', 'user not found');
-    }
-    return { ...userData, userId } as any;
+    return userData;
 };
+
+/**
+ * get user information from the ID
+ * @param userId 
+ */
+
+export const getUserById = async (userId: string): Promise<IUser> => {
+
+    try{
+    const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
+    const userData = snapshot.data();  
+    if (!userData) {
+       
+        throw new functions.https.HttpsError('not-found', `user ${userId} not found ${userData}`);
+    }
+
+    return { ...userData, userId } as any;
+    
+}catch(error){
+    throw new functions.https.HttpsError('invalid-argument', error.message);
+}
+}
 
 export const addUser = functions.https.onCall(async (data: IUser, context) => {
     try {
-        const { email, password, photoURL, firstName, lastName } = data;
+        const { email, password, firstName, lastName } = data;
         const displayName = `${firstName} ${lastName}`;
 
         if (!email && !password) {
@@ -51,7 +69,6 @@ export const addUser = functions.https.onCall(async (data: IUser, context) => {
             emailVerified: true,
             password,
             displayName,
-            photoURL: photoURL ? photoURL : null,
             disabled: false,
         });
 
@@ -62,7 +79,7 @@ export const addUser = functions.https.onCall(async (data: IUser, context) => {
                 .firestore()
                 .collection(USER_COLLECTION)
                 .doc(userRecord.uid)
-                .set({ ...data, business: data.businessId });
+                .set({ ...data, business: data.business });
 
             console.log('Successfully created new user:', userRecord.uid);
         }
@@ -137,7 +154,7 @@ export const deleteUser = functions.https.onCall(async (userId, context) => {
 });
 
 export const userById = functions.https.onCall(async (userId, context) => {
-    try { 
+    try {
         if (!userId) {
             throw Error('userId is mandatory');
         }
@@ -150,6 +167,31 @@ export const userById = functions.https.onCall(async (userId, context) => {
             throw new functions.https.HttpsError('not-found', 'user not found');
         }
         return { ...userData, disabled, email, photoURL, userId };
+    } catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
+
+/**
+ * based on the user request it get the user who is requesting and get the business id associated
+ */
+export const getUsersRelated = functions.https.onCall(async (data, context) => {
+    try {
+        const requestedUser = await getCurrentUserInfo(context);
+ 
+        if (!requestedUser.business) {
+            throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
+        }
+
+        const userRecords = await admin
+            .firestore()
+            .collection(USER_COLLECTION)
+            .where('business', '==', requestedUser.business)
+            .get();
+        const usersWithId = userRecords.docs.map((doc) => ({ userId: doc.id, ...doc.data() }));
+
+        console.log('users: ', usersWithId);
+        return usersWithId;
     } catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }

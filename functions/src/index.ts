@@ -1,6 +1,7 @@
 import * as admin from 'firebase-admin';
 import * as firebaseAccountCredentials from './serviceAccountKey.json';
 export * from './users';
+export * from './chat';
 
 const serviceAccount = firebaseAccountCredentials as admin.ServiceAccount;
 
