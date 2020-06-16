@@ -4,7 +4,8 @@ import { getCurrentUserInfo, USER_COLLECTION , getUserById} from "../users";
  
 export const CONVERSATION_COLLECTION = 'conversations';
 export const BUSINESS_COLLECTION = 'business'
- 
+export const MESSAGES_COLLECTION = 'messages'
+
 interface IMessage {
     createdAt: string;
     senderId: string;
@@ -15,19 +16,17 @@ interface IConversation {
     conversationId?: string;
     messages?: IMessage[]
     displayMessage: string;
-    lastMessageTime: string;
+    lastMessageTime:  FirebaseFirestore.FieldValue;
     members: any[] //userId: Boolean
 
 }
 
 interface IConversationResponse {
-    userId: string;
+    
     conversationId: string;
-    photoURL?: string;
-    firstName: string;
-    lastName: string;
+    
     displayMessage?: string;
-    lastMessageTime?: string;
+    lastMessageTime?:  FirebaseFirestore.FieldValue;
     unseenCount: number;
 }
 
@@ -73,6 +72,112 @@ export const getConversations = functions.https.onCall(async (data, context): Pr
 });
 
 
+/**
+ * @param targetUser string This is the user who with going to stablish the conversation
+ * Create new Conversation between two party
+ */
+
+
+export const newConversation = functions.https.onCall(async (targetUser, context): Promise<IConversationResponse> => {
+    try {
+        const requestedUser = await getCurrentUserInfo(context);
+        const targetUserInfo = await getUserById(targetUser)
+
+        if (!requestedUser.business) {
+            throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
+        }
+
+        //Create new conversation
+        const conversationRef = await admin
+            .firestore()
+            .collection(BUSINESS_COLLECTION)
+            .doc(requestedUser.business)
+            .collection(CONVERSATION_COLLECTION)
+            .add({
+                displayMessage:"",
+                lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
+                members: [{[requestedUser.userId]: true}, {[targetUser]: true}],
+            })
+
+
+        //create new node in user requested node
+        
+        await admin
+        .firestore()
+        .collection(USER_COLLECTION)
+        .doc(requestedUser.userId)
+        .collection(CONVERSATION_COLLECTION)
+        .doc(targetUser)
+        .set({
+            conversationId: conversationRef.id,
+            unseenCount: 0
+        });
+
+        //create new node in targetUser
+
+        await admin
+        .firestore()
+        .collection(USER_COLLECTION)
+        .doc(targetUser)
+        .collection(CONVERSATION_COLLECTION)
+        .doc(requestedUser.userId)
+        .set({
+            conversationId: conversationRef.id,
+            unseenCount: 0
+        });
+ 
+        return ({ 
+            user: targetUserInfo, 
+            conversationId: conversationRef.id, 
+            unseenCount: 0, 
+            lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
+            displayMessage: ""
+        }) as IConversationResponse;
+        
+    } catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
+
+interface IMessagesResponse {
+    messageId: string
+    senderId: string
+    senderName: string
+    sentDate: string 
+    content: string
+    url: string
+}
+
+export const getMessages = functions.https.onCall(async (conversationId, context): Promise<IMessagesResponse[]> => {
+    try {
+        const requestedUser = await getCurrentUserInfo(context);
+
+        if (!requestedUser.business) {
+            throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
+        }
+
+        //Create new conversation
+        const messages = await admin
+            .firestore()
+            .collection(BUSINESS_COLLECTION)
+            .doc(requestedUser.business)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(conversationId)
+            .collection(MESSAGES_COLLECTION)
+            .get()
+               
+            if(messages){
+                const messagesRecords = messages.docs.map(d => ({messageId: d.id, ...d.data()}))
+                return messagesRecords as IMessagesResponse[]
+            }
+            
+        return [] as IMessagesResponse[]
+        
+    } catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
+
 const getConversationInfo = async (doc: any): Promise<IConversationResponse | undefined> =>{
    try{
     const userId = doc.id;
@@ -81,7 +186,8 @@ const getConversationInfo = async (doc: any): Promise<IConversationResponse | un
     const userInfo = await getUserById(userId);
     const conversationInfo = await getConversationById(conversationId, userInfo.business)
 
-   return ({userId, conversationId, unseenCount, photoURL: userInfo.photoURL, firstName: userInfo.firstName, lastName: userInfo.lastName, lastMessageTime: conversationInfo?.lastMessageTime, displayMessage: conversationInfo?.displayMessage }) as IConversationResponse;
+
+   return ({ user: userInfo, conversationId, unseenCount, lastMessageTime: conversationInfo?.lastMessageTime, displayMessage: conversationInfo?.displayMessage }) as IConversationResponse;
 
    }catch(error){ 
     throw new functions.https.HttpsError('invalid-argument', error.message);
@@ -110,3 +216,45 @@ export const getConversationById = async (conversationId: string, businessId: st
     throw new functions.https.HttpsError('invalid-argument', error.message);
 }
 }
+ 
+
+ /**
+ * add new Text
+ */
+
+interface ISaveNewMessageProps {
+    content: string,
+    conversationId: string
+ }
+
+export const saveNewMessage = functions.https.onCall(async (data: ISaveNewMessageProps, context): Promise<Boolean> => {
+    try {
+        const requestedUser = await getCurrentUserInfo(context);
+        const { content, conversationId } = data;
+        
+        if (!requestedUser.business && content && conversationId) {
+            throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated, content, and conversationId');
+        }
+
+        const message =  {
+            content,
+            senderId: requestedUser.userId,
+            senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
+            sentDate: admin.firestore.FieldValue.serverTimestamp(),
+        }
+
+        await admin
+            .firestore()
+            .collection(BUSINESS_COLLECTION)
+            .doc(requestedUser.business)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(conversationId)
+            .collection(MESSAGES_COLLECTION)
+            .add(message)
+    
+          return true;
+        
+    } catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
