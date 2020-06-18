@@ -3,7 +3,7 @@ import * as functions from 'firebase-functions';
 import {  BUSINESS_COLLECTION, CONVERSATION_COLLECTION, MESSAGES_COLLECTION, USER_COLLECTION} from "../index";
 import { getCurrentUserInfo, getUserById } from "../users";
 
-
+const REGION = "us-east1"
 
 interface IMessage {
     createdAt: string;
@@ -32,7 +32,7 @@ interface IConversationResponse {
 /**
  * based on the user request it get the user who is requesting and get the business id associated
  */
-export const getConversations = functions.https.onCall(async (data, context): Promise<IConversationResponse[]> => {
+export const getConversations = functions.region(REGION).https.onCall(async (data, context): Promise<IConversationResponse[]> => {
     try {
         const requestedUser = await getCurrentUserInfo(context);
 
@@ -77,7 +77,7 @@ export const getConversations = functions.https.onCall(async (data, context): Pr
  */
 
 
-export const newConversation = functions.https.onCall(async (targetUser, context): Promise<IConversationResponse> => {
+export const newConversation = functions.region(REGION).https.onCall(async (targetUser, context): Promise<IConversationResponse> => {
     try {
         const requestedUser = await getCurrentUserInfo(context);
         const targetUserInfo = await getUserById(targetUser)
@@ -147,7 +147,7 @@ interface IMessagesResponse {
     url: string
 }
 
-export const getMessages = functions.https.onCall(async (conversationId, context): Promise<IMessagesResponse[]> => {
+export const getMessages = functions.region(REGION).https.onCall(async (conversationId, context): Promise<IMessagesResponse[]> => {
     try {
         const requestedUser = await getCurrentUserInfo(context);
 
@@ -226,7 +226,7 @@ interface ISaveNewMessageProps {
     conversationId: string
  }
 
-export const saveNewMessage = functions.https.onCall(async (data: ISaveNewMessageProps, context): Promise<boolean> => {
+export const saveNewMessage = functions.region(REGION).https.onCall(async (data: ISaveNewMessageProps, context): Promise<boolean> => {
     try {
         const requestedUser = await getCurrentUserInfo(context);
         const { content, conversationId } = data;
@@ -251,7 +251,7 @@ export const saveNewMessage = functions.https.onCall(async (data: ISaveNewMessag
             .collection(MESSAGES_COLLECTION)
             .add(message)
 
-            //update conversation info
+            // update conversation info
             await admin
             .firestore()
             .collection(BUSINESS_COLLECTION)
@@ -263,7 +263,7 @@ export const saveNewMessage = functions.https.onCall(async (data: ISaveNewMessag
                 lastMessageTime: admin.firestore.FieldValue.serverTimestamp()
             })
     
-            //get User Members
+            // get User Members
             const records = await admin
             .firestore()
             .collection(BUSINESS_COLLECTION)
@@ -275,14 +275,14 @@ export const saveNewMessage = functions.https.onCall(async (data: ISaveNewMessag
             if(records.exists){
                 const { members }  = records.data() as {[key:string]: boolean};
                 const membersIds = Object.keys(members).filter(memberId => memberId !== requestedUser.userId);
-                //update target user conversation unseen Counter
+                // update target user conversation unseen Counter
                 for await ( const memberId of membersIds){ 
                     await admin
                     .firestore()
                     .collection(USER_COLLECTION)
                     .doc(memberId)
                     .collection(CONVERSATION_COLLECTION)
-                    .doc(requestedUser.userId) //user requested
+                    .doc(requestedUser.userId) // user requested
                     .update({
                         unseenCount: admin.firestore.FieldValue.increment(1)
                     });

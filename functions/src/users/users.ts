@@ -2,7 +2,7 @@ import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import {  USER_COLLECTION} from "../index";
 
-
+const REGION = "us-east1"
 
 export enum UserTypeEnum {
     seller = 'seller',
@@ -48,7 +48,7 @@ export const getUserById = async (userId: string): Promise<IUser> => {
 }
 }
 
-export const addUser = functions.https.onCall(async (data: IUser, context) => {
+export const addUser = functions.region(REGION).https.onCall(async (data: IUser, context) => {
     try {
         const { email, password, firstName, lastName } = data;
         const displayName = `${firstName} ${lastName}`;
@@ -90,7 +90,7 @@ export const addUser = functions.https.onCall(async (data: IUser, context) => {
     }
 });
 
-export const updateUser = functions.https.onCall(async (data, context) => {
+export const updateUser = functions.region(REGION).https.onCall(async (data, context) => {
     try {
         const { userId, email, photoURL, firstName, lastName, disabled } = data;
         const displayName = `${firstName} ${lastName}`;
@@ -120,7 +120,7 @@ export const updateUser = functions.https.onCall(async (data, context) => {
     }
 });
 
-export const updatePassword = functions.https.onCall(async ({ userId, password }, context) => {
+export const updatePassword = functions.region(REGION).https.onCall(async ({ userId, password }, context) => {
     try {
         if (!userId && !password) {
             throw Error('userId and password are mandatory');
@@ -137,7 +137,7 @@ export const updatePassword = functions.https.onCall(async ({ userId, password }
     }
 });
 
-export const deleteUser = functions.https.onCall(async (userId, context) => {
+export const deleteUser = functions.region(REGION).https.onCall(async (userId, context) => {
     try {
         if (!userId) {
             throw Error('userId is mandatory');
@@ -154,7 +154,7 @@ export const deleteUser = functions.https.onCall(async (userId, context) => {
     }
 });
 
-export const userById = functions.https.onCall(async (userId, context) => {
+export const userById = functions.region(REGION).https.onCall(async (userId, context) => {
     try {
         if (!userId) {
             throw Error('userId is mandatory');
@@ -176,7 +176,7 @@ export const userById = functions.https.onCall(async (userId, context) => {
 /**
  * based on the user request it get the user who is requesting and get the business id associated
  */
-export const getUsersRelated = functions.https.onCall(async (data, context) => {
+export const getUsersRelated = functions.region(REGION).https.onCall(async (data, context) => {
     try {
         const requestedUser = await getCurrentUserInfo(context);
  

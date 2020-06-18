@@ -23,6 +23,7 @@ exports.getUsersRelated = exports.userById = exports.deleteUser = exports.update
 const admin = __importStar(require("firebase-admin"));
 const functions = __importStar(require("firebase-functions"));
 const index_1 = require("../index");
+const REGION = "us-east1";
 var UserTypeEnum;
 (function (UserTypeEnum) {
     UserTypeEnum["seller"] = "seller";
@@ -59,7 +60,7 @@ exports.getUserById = async (userId) => {
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 };
-exports.addUser = functions.https.onCall(async (data, context) => {
+exports.addUser = functions.region(REGION).https.onCall(async (data, context) => {
     try {
         const { email, password, firstName, lastName } = data;
         const displayName = `${firstName} ${lastName}`;
@@ -95,7 +96,7 @@ exports.addUser = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });
-exports.updateUser = functions.https.onCall(async (data, context) => {
+exports.updateUser = functions.region(REGION).https.onCall(async (data, context) => {
     try {
         const { userId, email, photoURL, firstName, lastName, disabled } = data;
         const displayName = `${firstName} ${lastName}`;
@@ -121,7 +122,7 @@ exports.updateUser = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });
-exports.updatePassword = functions.https.onCall(async ({ userId, password }, context) => {
+exports.updatePassword = functions.region(REGION).https.onCall(async ({ userId, password }, context) => {
     try {
         if (!userId && !password) {
             throw Error('userId and password are mandatory');
@@ -136,7 +137,7 @@ exports.updatePassword = functions.https.onCall(async ({ userId, password }, con
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });
-exports.deleteUser = functions.https.onCall(async (userId, context) => {
+exports.deleteUser = functions.region(REGION).https.onCall(async (userId, context) => {
     try {
         if (!userId) {
             throw Error('userId is mandatory');
@@ -151,7 +152,7 @@ exports.deleteUser = functions.https.onCall(async (userId, context) => {
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });
-exports.userById = functions.https.onCall(async (userId, context) => {
+exports.userById = functions.region(REGION).https.onCall(async (userId, context) => {
     try {
         if (!userId) {
             throw Error('userId is mandatory');
@@ -171,7 +172,7 @@ exports.userById = functions.https.onCall(async (userId, context) => {
 /**
  * based on the user request it get the user who is requesting and get the business id associated
  */
-exports.getUsersRelated = functions.https.onCall(async (data, context) => {
+exports.getUsersRelated = functions.region(REGION).https.onCall(async (data, context) => {
     try {
         const requestedUser = await exports.getCurrentUserInfo(context);
         if (!requestedUser.business) {

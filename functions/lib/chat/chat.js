@@ -31,10 +31,11 @@ const admin = __importStar(require("firebase-admin"));
 const functions = __importStar(require("firebase-functions"));
 const index_1 = require("../index");
 const users_1 = require("../users");
+const REGION = "us-east1";
 /**
  * based on the user request it get the user who is requesting and get the business id associated
  */
-exports.getConversations = functions.https.onCall(async (data, context) => {
+exports.getConversations = functions.region(REGION).https.onCall(async (data, context) => {
     var e_1, _a;
     try {
         const requestedUser = await users_1.getCurrentUserInfo(context);
@@ -78,7 +79,7 @@ exports.getConversations = functions.https.onCall(async (data, context) => {
  * @param targetUser string This is the user who with going to stablish the conversation
  * Create new Conversation between two party
  */
-exports.newConversation = functions.https.onCall(async (targetUser, context) => {
+exports.newConversation = functions.region(REGION).https.onCall(async (targetUser, context) => {
     try {
         const requestedUser = await users_1.getCurrentUserInfo(context);
         const targetUserInfo = await users_1.getUserById(targetUser);
@@ -130,7 +131,7 @@ exports.newConversation = functions.https.onCall(async (targetUser, context) => 
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });
-exports.getMessages = functions.https.onCall(async (conversationId, context) => {
+exports.getMessages = functions.region(REGION).https.onCall(async (conversationId, context) => {
     try {
         const requestedUser = await users_1.getCurrentUserInfo(context);
         if (!requestedUser.business) {
@@ -185,7 +186,7 @@ exports.getConversationById = async (conversationId, businessId) => {
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 };
-exports.saveNewMessage = functions.https.onCall(async (data, context) => {
+exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, context) => {
     var e_2, _a;
     try {
         const requestedUser = await users_1.getCurrentUserInfo(context);
@@ -207,7 +208,7 @@ exports.saveNewMessage = functions.https.onCall(async (data, context) => {
             .doc(conversationId)
             .collection(index_1.MESSAGES_COLLECTION)
             .add(message);
-        //update conversation info
+        // update conversation info
         await admin
             .firestore()
             .collection(index_1.BUSINESS_COLLECTION)
@@ -218,7 +219,7 @@ exports.saveNewMessage = functions.https.onCall(async (data, context) => {
             displayMessage: content,
             lastMessageTime: admin.firestore.FieldValue.serverTimestamp()
         });
-        //get User Members
+        // get User Members
         const records = await admin
             .firestore()
             .collection(index_1.BUSINESS_COLLECTION)
@@ -230,16 +231,15 @@ exports.saveNewMessage = functions.https.onCall(async (data, context) => {
             const { members } = records.data();
             const membersIds = Object.keys(members).filter(memberId => memberId !== requestedUser.userId);
             try {
-                //update target user conversation unseen Counter
+                // update target user conversation unseen Counter
                 for (var membersIds_1 = __asyncValues(membersIds), membersIds_1_1; membersIds_1_1 = await membersIds_1.next(), !membersIds_1_1.done;) {
                     const memberId = membersIds_1_1.value;
-                    console.log("STARING NORIF", memberId);
                     await admin
                         .firestore()
                         .collection(index_1.USER_COLLECTION)
                         .doc(memberId)
                         .collection(index_1.CONVERSATION_COLLECTION)
-                        .doc(requestedUser.userId) //user requested
+                        .doc(requestedUser.userId) // user requested
                         .update({
                         unseenCount: admin.firestore.FieldValue.increment(1)
                     });
@@ -253,7 +253,6 @@ exports.saveNewMessage = functions.https.onCall(async (data, context) => {
                 finally { if (e_2) throw e_2.error; }
             }
         }
-        console.log("DONEEEEEE");
         return true;
     }
     catch (error) {
