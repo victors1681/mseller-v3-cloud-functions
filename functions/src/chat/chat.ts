@@ -295,4 +295,39 @@ export const saveNewMessage = functions.region(REGION).https.onCall(async (data:
         console.error(error)
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
+    
+});
+
+interface IResetUnseenCounter {
+    targetUserId: string,
+}
+
+export const resetUnseenCounter = functions.region(REGION).https.onCall(async (data : IResetUnseenCounter, context): Promise<boolean> => {
+    try {
+        const requestedUser = await getCurrentUserInfo(context);
+        const { targetUserId } = data;
+        
+        if (!requestedUser.business && targetUserId) {
+            throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated or targetUserId');
+        }
+  
+            // update conversation info
+            await admin
+            .firestore()
+            .collection(USER_COLLECTION)
+            .doc(requestedUser.userId)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(targetUserId)
+            .update({
+                unseenCount: 0,
+            })
+     
+            
+          return true;
+        
+    } catch (error) {
+        console.error(error)
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+    
 });

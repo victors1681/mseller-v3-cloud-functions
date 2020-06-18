@@ -26,7 +26,7 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
     function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.saveNewMessage = exports.getConversationById = exports.getMessages = exports.newConversation = exports.getConversations = void 0;
+exports.resetUnseenCounter = exports.saveNewMessage = exports.getConversationById = exports.getMessages = exports.newConversation = exports.getConversations = void 0;
 const admin = __importStar(require("firebase-admin"));
 const functions = __importStar(require("firebase-functions"));
 const index_1 = require("../index");
@@ -253,6 +253,30 @@ exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, cont
                 finally { if (e_2) throw e_2.error; }
             }
         }
+        return true;
+    }
+    catch (error) {
+        console.error(error);
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
+exports.resetUnseenCounter = functions.region(REGION).https.onCall(async (data, context) => {
+    try {
+        const requestedUser = await users_1.getCurrentUserInfo(context);
+        const { targetUserId } = data;
+        if (!requestedUser.business && targetUserId) {
+            throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated or targetUserId');
+        }
+        // update conversation info
+        await admin
+            .firestore()
+            .collection(index_1.USER_COLLECTION)
+            .doc(requestedUser.userId)
+            .collection(index_1.CONVERSATION_COLLECTION)
+            .doc(targetUserId)
+            .update({
+            unseenCount: 0,
+        });
         return true;
     }
     catch (error) {
