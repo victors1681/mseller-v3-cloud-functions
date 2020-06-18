@@ -22,6 +22,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !exports.hasOwnProperty(p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.USER_COLLECTION = exports.MESSAGES_COLLECTION = exports.BUSINESS_COLLECTION = exports.CONVERSATION_COLLECTION = exports.REGION = void 0;
 const admin = __importStar(require("firebase-admin"));
 const firebaseAccountCredentials = __importStar(require("./serviceAccountKey.json"));
 __exportStar(require("./users"), exports);
@@ -31,4 +32,9 @@ admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     databaseURL: 'https://mobile-seller-v3.firebaseio.com',
 });
+exports.REGION = "us-east1";
+exports.CONVERSATION_COLLECTION = 'conversations';
+exports.BUSINESS_COLLECTION = 'business';
+exports.MESSAGES_COLLECTION = 'messages';
+exports.USER_COLLECTION = 'users';
 //# sourceMappingURL=index.js.map

@@ -1,10 +1,9 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
-import { getCurrentUserInfo, getUserById , USER_COLLECTION} from "../users";
- 
-export const CONVERSATION_COLLECTION = 'conversations';
-export const BUSINESS_COLLECTION = 'business'
-export const MESSAGES_COLLECTION = 'messages'
+import {  BUSINESS_COLLECTION, CONVERSATION_COLLECTION, MESSAGES_COLLECTION, USER_COLLECTION} from "../index";
+import { getCurrentUserInfo, getUserById } from "../users";
+
+
 
 interface IMessage {
     createdAt: string;

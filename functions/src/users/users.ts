@@ -1,7 +1,8 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
+import {  USER_COLLECTION} from "../index";
 
-export const USER_COLLECTION = 'users';
+
 
 export enum UserTypeEnum {
     seller = 'seller',

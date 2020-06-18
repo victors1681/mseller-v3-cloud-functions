@@ -26,13 +26,11 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
     function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.saveNewMessage = exports.getConversationById = exports.getMessages = exports.newConversation = exports.getConversations = exports.MESSAGES_COLLECTION = exports.BUSINESS_COLLECTION = exports.CONVERSATION_COLLECTION = void 0;
+exports.saveNewMessage = exports.getConversationById = exports.getMessages = exports.newConversation = exports.getConversations = void 0;
 const admin = __importStar(require("firebase-admin"));
 const functions = __importStar(require("firebase-functions"));
+const index_1 = require("../index");
 const users_1 = require("../users");
-exports.CONVERSATION_COLLECTION = 'conversations';
-exports.BUSINESS_COLLECTION = 'business';
-exports.MESSAGES_COLLECTION = 'messages';
 /**
  * based on the user request it get the user who is requesting and get the business id associated
  */
@@ -45,9 +43,9 @@ exports.getConversations = functions.https.onCall(async (data, context) => {
         }
         const conversationRecords = await admin
             .firestore()
-            .collection(users_1.USER_COLLECTION)
+            .collection(index_1.USER_COLLECTION)
             .doc(requestedUser.userId)
-            .collection(exports.CONVERSATION_COLLECTION)
+            .collection(index_1.CONVERSATION_COLLECTION)
             .get();
         if (!conversationRecords.docs.length) {
             throw new functions.https.HttpsError('invalid-argument', 'There is not available conversations');
@@ -90,9 +88,9 @@ exports.newConversation = functions.https.onCall(async (targetUser, context) => 
         // Create new conversation
         const conversationRef = await admin
             .firestore()
-            .collection(exports.BUSINESS_COLLECTION)
+            .collection(index_1.BUSINESS_COLLECTION)
             .doc(requestedUser.business)
-            .collection(exports.CONVERSATION_COLLECTION)
+            .collection(index_1.CONVERSATION_COLLECTION)
             .add({
             displayMessage: "",
             lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
@@ -101,9 +99,9 @@ exports.newConversation = functions.https.onCall(async (targetUser, context) => 
         // create new node in user requested node
         await admin
             .firestore()
-            .collection(users_1.USER_COLLECTION)
+            .collection(index_1.USER_COLLECTION)
             .doc(requestedUser.userId)
-            .collection(exports.CONVERSATION_COLLECTION)
+            .collection(index_1.CONVERSATION_COLLECTION)
             .doc(targetUser)
             .set({
             conversationId: conversationRef.id,
@@ -112,9 +110,9 @@ exports.newConversation = functions.https.onCall(async (targetUser, context) => 
         // create new node in targetUser
         await admin
             .firestore()
-            .collection(users_1.USER_COLLECTION)
+            .collection(index_1.USER_COLLECTION)
             .doc(targetUser)
-            .collection(exports.CONVERSATION_COLLECTION)
+            .collection(index_1.CONVERSATION_COLLECTION)
             .doc(requestedUser.userId)
             .set({
             conversationId: conversationRef.id,
@@ -141,11 +139,11 @@ exports.getMessages = functions.https.onCall(async (conversationId, context) => 
         // Create new conversation
         const messages = await admin
             .firestore()
-            .collection(exports.BUSINESS_COLLECTION)
+            .collection(index_1.BUSINESS_COLLECTION)
             .doc(requestedUser.business)
-            .collection(exports.CONVERSATION_COLLECTION)
+            .collection(index_1.CONVERSATION_COLLECTION)
             .doc(conversationId)
-            .collection(exports.MESSAGES_COLLECTION)
+            .collection(index_1.MESSAGES_COLLECTION)
             .get();
         if (messages) {
             const messagesRecords = messages.docs.map(d => (Object.assign({ messageId: d.id }, d.data())));
@@ -176,7 +174,7 @@ const getConversationInfo = async (doc) => {
  */
 exports.getConversationById = async (conversationId, businessId) => {
     try {
-        const snapshot = await admin.firestore().collection(exports.BUSINESS_COLLECTION).doc(businessId).collection(exports.CONVERSATION_COLLECTION).doc(conversationId).get();
+        const snapshot = await admin.firestore().collection(index_1.BUSINESS_COLLECTION).doc(businessId).collection(index_1.CONVERSATION_COLLECTION).doc(conversationId).get();
         const conversationRecord = snapshot.data();
         if (conversationRecord) {
             return Object.assign({ conversationId }, conversationRecord);
@@ -202,17 +200,17 @@ exports.saveNewMessage = functions.https.onCall(async (data, context) => {
         };
         await admin
             .firestore()
-            .collection(exports.BUSINESS_COLLECTION)
+            .collection(index_1.BUSINESS_COLLECTION)
             .doc(requestedUser.business)
-            .collection(exports.CONVERSATION_COLLECTION)
+            .collection(index_1.CONVERSATION_COLLECTION)
             .doc(conversationId)
-            .collection(exports.MESSAGES_COLLECTION)
+            .collection(index_1.MESSAGES_COLLECTION)
             .add(message);
         await admin
             .firestore()
-            .collection(exports.BUSINESS_COLLECTION)
+            .collection(index_1.BUSINESS_COLLECTION)
             .doc(requestedUser.business)
-            .collection(exports.CONVERSATION_COLLECTION)
+            .collection(index_1.CONVERSATION_COLLECTION)
             .doc(conversationId)
             .set({
             displayMessage: content,

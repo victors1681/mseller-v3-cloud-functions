@@ -19,10 +19,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUsersRelated = exports.userById = exports.deleteUser = exports.updatePassword = exports.updateUser = exports.addUser = exports.getUserById = exports.getCurrentUserInfo = exports.UserTypeEnum = exports.USER_COLLECTION = void 0;
+exports.getUsersRelated = exports.userById = exports.deleteUser = exports.updatePassword = exports.updateUser = exports.addUser = exports.getUserById = exports.getCurrentUserInfo = exports.UserTypeEnum = void 0;
 const admin = __importStar(require("firebase-admin"));
 const functions = __importStar(require("firebase-functions"));
-exports.USER_COLLECTION = 'users';
+const index_1 = require("../index");
 var UserTypeEnum;
 (function (UserTypeEnum) {
     UserTypeEnum["seller"] = "seller";
@@ -48,7 +48,7 @@ exports.getCurrentUserInfo = async (context) => {
  */
 exports.getUserById = async (userId) => {
     try {
-        const snapshot = await admin.firestore().collection(exports.USER_COLLECTION).doc(userId).get();
+        const snapshot = await admin.firestore().collection(index_1.USER_COLLECTION).doc(userId).get();
         const userData = snapshot.data();
         if (!userData) {
             throw new functions.https.HttpsError('not-found', `user ${userId} not found ${userData}`);
@@ -84,7 +84,7 @@ exports.addUser = functions.https.onCall(async (data, context) => {
             delete data.password;
             await admin
                 .firestore()
-                .collection(exports.USER_COLLECTION)
+                .collection(index_1.USER_COLLECTION)
                 .doc(userRecord.uid)
                 .set(Object.assign(Object.assign({}, data), { business: data.business }));
             console.log('Successfully created new user:', userRecord.uid);
@@ -112,7 +112,7 @@ exports.updateUser = functions.https.onCall(async (data, context) => {
         delete data.password;
         await admin
             .firestore()
-            .collection(exports.USER_COLLECTION)
+            .collection(index_1.USER_COLLECTION)
             .doc(userId)
             .set(Object.assign({}, data));
         return { result: 'user updated', userId };
@@ -143,7 +143,7 @@ exports.deleteUser = functions.https.onCall(async (userId, context) => {
         }
         await admin.auth().deleteUser(userId);
         // remove table..
-        await admin.firestore().collection(exports.USER_COLLECTION).doc(userId).delete();
+        await admin.firestore().collection(index_1.USER_COLLECTION).doc(userId).delete();
         console.log('Successfully user removed:', userId);
         return { result: 'user removed' };
     }
@@ -157,7 +157,7 @@ exports.userById = functions.https.onCall(async (userId, context) => {
             throw Error('userId is mandatory');
         }
         const { disabled, email, photoURL } = await admin.auth().getUser(userId);
-        const snapshot = await admin.firestore().collection(exports.USER_COLLECTION).doc(userId).get();
+        const snapshot = await admin.firestore().collection(index_1.USER_COLLECTION).doc(userId).get();
         const userData = snapshot.data();
         if (userData && userData.empty) {
             throw new functions.https.HttpsError('not-found', 'user not found');
@@ -179,7 +179,7 @@ exports.getUsersRelated = functions.https.onCall(async (data, context) => {
         }
         const userRecords = await admin
             .firestore()
-            .collection(exports.USER_COLLECTION)
+            .collection(index_1.USER_COLLECTION)
             .where('business', '==', requestedUser.business)
             .get();
         const usersWithId = userRecords.docs.map((doc) => (Object.assign({ userId: doc.id }, doc.data())));
