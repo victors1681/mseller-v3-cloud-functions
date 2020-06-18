@@ -257,7 +257,7 @@ export const saveNewMessage = functions.https.onCall(async (data: ISaveNewMessag
             .doc(requestedUser.business)
             .collection(CONVERSATION_COLLECTION)
             .doc(conversationId)
-            .set({
+            .update({
                 displayMessage: content,
                 lastMessageTime: admin.firestore.FieldValue.serverTimestamp()
             })
