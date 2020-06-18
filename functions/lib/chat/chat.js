@@ -208,6 +208,16 @@ exports.saveNewMessage = functions.https.onCall(async (data, context) => {
             .doc(conversationId)
             .collection(exports.MESSAGES_COLLECTION)
             .add(message);
+        await admin
+            .firestore()
+            .collection(exports.BUSINESS_COLLECTION)
+            .doc(requestedUser.business)
+            .collection(exports.CONVERSATION_COLLECTION)
+            .doc(conversationId)
+            .set({
+            displayMessage: content,
+            lastMessageTime: admin.firestore.FieldValue.serverTimestamp()
+        });
         return true;
     }
     catch (error) {
