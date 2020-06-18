@@ -251,6 +251,7 @@ export const saveNewMessage = functions.https.onCall(async (data: ISaveNewMessag
             .collection(MESSAGES_COLLECTION)
             .add(message)
 
+            //update conversation info
             await admin
             .firestore()
             .collection(BUSINESS_COLLECTION)
@@ -262,9 +263,36 @@ export const saveNewMessage = functions.https.onCall(async (data: ISaveNewMessag
                 lastMessageTime: admin.firestore.FieldValue.serverTimestamp()
             })
     
+            //get User Members
+            const records = await admin
+            .firestore()
+            .collection(BUSINESS_COLLECTION)
+            .doc(requestedUser.business)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(conversationId)
+            .get()
+
+            if(records.exists){
+                const { members }  = records.data() as {[key:string]: boolean};
+                const membersIds = Object.keys(members).filter(memberId => memberId !== requestedUser.userId);
+                //update target user conversation unseen Counter
+                for await ( const memberId of membersIds){ 
+                    await admin
+                    .firestore()
+                    .collection(USER_COLLECTION)
+                    .doc(memberId)
+                    .collection(CONVERSATION_COLLECTION)
+                    .doc(requestedUser.userId) //user requested
+                    .update({
+                        unseenCount: admin.firestore.FieldValue.increment(1)
+                    });
+                }
+            }
+            
           return true;
         
     } catch (error) {
+        console.error(error)
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });

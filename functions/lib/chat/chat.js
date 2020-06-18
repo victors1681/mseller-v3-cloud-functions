@@ -186,6 +186,7 @@ exports.getConversationById = async (conversationId, businessId) => {
     }
 };
 exports.saveNewMessage = functions.https.onCall(async (data, context) => {
+    var e_2, _a;
     try {
         const requestedUser = await users_1.getCurrentUserInfo(context);
         const { content, conversationId } = data;
@@ -206,19 +207,57 @@ exports.saveNewMessage = functions.https.onCall(async (data, context) => {
             .doc(conversationId)
             .collection(index_1.MESSAGES_COLLECTION)
             .add(message);
+        //update conversation info
         await admin
             .firestore()
             .collection(index_1.BUSINESS_COLLECTION)
             .doc(requestedUser.business)
             .collection(index_1.CONVERSATION_COLLECTION)
             .doc(conversationId)
-            .set({
+            .update({
             displayMessage: content,
             lastMessageTime: admin.firestore.FieldValue.serverTimestamp()
         });
+        //get User Members
+        const records = await admin
+            .firestore()
+            .collection(index_1.BUSINESS_COLLECTION)
+            .doc(requestedUser.business)
+            .collection(index_1.CONVERSATION_COLLECTION)
+            .doc(conversationId)
+            .get();
+        if (records.exists) {
+            const { members } = records.data();
+            const membersIds = Object.keys(members).filter(memberId => memberId !== requestedUser.userId);
+            try {
+                //update target user conversation unseen Counter
+                for (var membersIds_1 = __asyncValues(membersIds), membersIds_1_1; membersIds_1_1 = await membersIds_1.next(), !membersIds_1_1.done;) {
+                    const memberId = membersIds_1_1.value;
+                    console.log("STARING NORIF", memberId);
+                    await admin
+                        .firestore()
+                        .collection(index_1.USER_COLLECTION)
+                        .doc(memberId)
+                        .collection(index_1.CONVERSATION_COLLECTION)
+                        .doc(requestedUser.userId) //user requested
+                        .update({
+                        unseenCount: admin.firestore.FieldValue.increment(1)
+                    });
+                }
+            }
+            catch (e_2_1) { e_2 = { error: e_2_1 }; }
+            finally {
+                try {
+                    if (membersIds_1_1 && !membersIds_1_1.done && (_a = membersIds_1.return)) await _a.call(membersIds_1);
+                }
+                finally { if (e_2) throw e_2.error; }
+            }
+        }
+        console.log("DONEEEEEE");
         return true;
     }
     catch (error) {
+        console.error(error);
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });
