@@ -1,6 +1,6 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
-import { getCurrentUserInfo, USER_COLLECTION , getUserById} from "../users";
+import { getCurrentUserInfo, getUserById , USER_COLLECTION} from "../users";
  
 export const CONVERSATION_COLLECTION = 'conversations';
 export const BUSINESS_COLLECTION = 'business'
@@ -17,7 +17,7 @@ interface IConversation {
     messages?: IMessage[]
     displayMessage: string;
     lastMessageTime:  FirebaseFirestore.FieldValue;
-    members: any[] //userId: Boolean
+    members: any[] // userId: Boolean
 
 }
 
@@ -56,7 +56,7 @@ export const getConversations = functions.https.onCall(async (data, context): Pr
  
             const conversationList = [] as IConversationResponse[]
 
-             for await (let doc of conversationRecords.docs){
+             for await (const doc of conversationRecords.docs){
                 const result = await getConversationInfo(doc)
                 if(result){
                   conversationList.push(result);
@@ -87,7 +87,7 @@ export const newConversation = functions.https.onCall(async (targetUser, context
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
 
-        //Create new conversation
+        // Create new conversation
         const conversationRef = await admin
             .firestore()
             .collection(BUSINESS_COLLECTION)
@@ -100,7 +100,7 @@ export const newConversation = functions.https.onCall(async (targetUser, context
             })
 
 
-        //create new node in user requested node
+        // create new node in user requested node
         
         await admin
         .firestore()
@@ -113,7 +113,7 @@ export const newConversation = functions.https.onCall(async (targetUser, context
             unseenCount: 0
         });
 
-        //create new node in targetUser
+        // create new node in targetUser
 
         await admin
         .firestore()
@@ -126,13 +126,13 @@ export const newConversation = functions.https.onCall(async (targetUser, context
             unseenCount: 0
         });
  
-        return ({ 
+        return { 
             user: targetUserInfo, 
             conversationId: conversationRef.id, 
             unseenCount: 0, 
             lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
             displayMessage: ""
-        }) as IConversationResponse;
+        } as IConversationResponse;
         
     } catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);
@@ -156,7 +156,7 @@ export const getMessages = functions.https.onCall(async (conversationId, context
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
 
-        //Create new conversation
+        // Create new conversation
         const messages = await admin
             .firestore()
             .collection(BUSINESS_COLLECTION)
@@ -187,7 +187,7 @@ const getConversationInfo = async (doc: any): Promise<IConversationResponse | un
     const conversationInfo = await getConversationById(conversationId, userInfo.business)
 
 
-   return ({ user: userInfo, conversationId, unseenCount, lastMessageTime: conversationInfo?.lastMessageTime, displayMessage: conversationInfo?.displayMessage }) as IConversationResponse;
+   return { user: userInfo, conversationId, unseenCount, lastMessageTime: conversationInfo?.lastMessageTime, displayMessage: conversationInfo?.displayMessage } as IConversationResponse;
 
    }catch(error){ 
     throw new functions.https.HttpsError('invalid-argument', error.message);
@@ -218,7 +218,7 @@ export const getConversationById = async (conversationId: string, businessId: st
 }
  
 
- /**
+/**
  * add new Text
  */
 
@@ -227,7 +227,7 @@ interface ISaveNewMessageProps {
     conversationId: string
  }
 
-export const saveNewMessage = functions.https.onCall(async (data: ISaveNewMessageProps, context): Promise<Boolean> => {
+export const saveNewMessage = functions.https.onCall(async (data: ISaveNewMessageProps, context): Promise<boolean> => {
     try {
         const requestedUser = await getCurrentUserInfo(context);
         const { content, conversationId } = data;
@@ -251,6 +251,17 @@ export const saveNewMessage = functions.https.onCall(async (data: ISaveNewMessag
             .doc(conversationId)
             .collection(MESSAGES_COLLECTION)
             .add(message)
+
+            await admin
+            .firestore()
+            .collection(BUSINESS_COLLECTION)
+            .doc(requestedUser.business)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(conversationId)
+            .set({
+                displayMessage: content,
+                lastMessageTime: admin.firestore.FieldValue.serverTimestamp()
+            })
     
           return true;
         

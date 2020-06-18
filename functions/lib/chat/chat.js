@@ -55,7 +55,7 @@ exports.getConversations = functions.https.onCall(async (data, context) => {
         const conversationList = [];
         try {
             for (var _b = __asyncValues(conversationRecords.docs), _c; _c = await _b.next(), !_c.done;) {
-                let doc = _c.value;
+                const doc = _c.value;
                 const result = await getConversationInfo(doc);
                 if (result) {
                     conversationList.push(result);
@@ -87,7 +87,7 @@ exports.newConversation = functions.https.onCall(async (targetUser, context) => 
         if (!requestedUser.business) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
-        //Create new conversation
+        // Create new conversation
         const conversationRef = await admin
             .firestore()
             .collection(exports.BUSINESS_COLLECTION)
@@ -98,7 +98,7 @@ exports.newConversation = functions.https.onCall(async (targetUser, context) => 
             lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
             members: [{ [requestedUser.userId]: true }, { [targetUser]: true }],
         });
-        //create new node in user requested node
+        // create new node in user requested node
         await admin
             .firestore()
             .collection(users_1.USER_COLLECTION)
@@ -109,7 +109,7 @@ exports.newConversation = functions.https.onCall(async (targetUser, context) => 
             conversationId: conversationRef.id,
             unseenCount: 0
         });
-        //create new node in targetUser
+        // create new node in targetUser
         await admin
             .firestore()
             .collection(users_1.USER_COLLECTION)
@@ -120,13 +120,13 @@ exports.newConversation = functions.https.onCall(async (targetUser, context) => 
             conversationId: conversationRef.id,
             unseenCount: 0
         });
-        return ({
+        return {
             user: targetUserInfo,
             conversationId: conversationRef.id,
             unseenCount: 0,
             lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
             displayMessage: ""
-        });
+        };
     }
     catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);
@@ -138,7 +138,7 @@ exports.getMessages = functions.https.onCall(async (conversationId, context) => 
         if (!requestedUser.business) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
-        //Create new conversation
+        // Create new conversation
         const messages = await admin
             .firestore()
             .collection(exports.BUSINESS_COLLECTION)
@@ -164,7 +164,7 @@ const getConversationInfo = async (doc) => {
         const unseenCount = doc.data().unseenCount;
         const userInfo = await users_1.getUserById(userId);
         const conversationInfo = await exports.getConversationById(conversationId, userInfo.business);
-        return ({ user: userInfo, conversationId, unseenCount, lastMessageTime: conversationInfo === null || conversationInfo === void 0 ? void 0 : conversationInfo.lastMessageTime, displayMessage: conversationInfo === null || conversationInfo === void 0 ? void 0 : conversationInfo.displayMessage });
+        return { user: userInfo, conversationId, unseenCount, lastMessageTime: conversationInfo === null || conversationInfo === void 0 ? void 0 : conversationInfo.lastMessageTime, displayMessage: conversationInfo === null || conversationInfo === void 0 ? void 0 : conversationInfo.displayMessage };
     }
     catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);

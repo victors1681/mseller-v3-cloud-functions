@@ -108,7 +108,8 @@
     // Prefer const for values that will not change. This better documents code.
     "prefer-const": {"severity": "warning"},
     "object-literal-sort-keys": false,
-    "no-console": [true, "warning"]
+    "no-console": [true, "warning"],
+    "no-object-literal-type-assertion": false
   },
   "defaultSeverity": "error",
   "extends": ["tslint:latest", "tslint-config-prettier"]
