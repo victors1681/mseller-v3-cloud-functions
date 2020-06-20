@@ -95,7 +95,9 @@ export const newConversation = functions.region(REGION).https.onCall(async (targ
             .add({
                 displayMessage:"",
                 lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
-                members: [{[requestedUser.userId]: true}, {[targetUser]: true}],
+                members: {
+                    [requestedUser.userId]: true, 
+                    [targetUser]: true},
             })
 
 
