@@ -86,6 +86,39 @@ export const newConversation = functions.region(REGION).https.onCall(async (targ
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
 
+        //Check if conversation exist
+        const conversationExist = await admin
+        .firestore()
+        .collection(USER_COLLECTION)
+        .doc(requestedUser.userId)
+        .collection(CONVERSATION_COLLECTION)
+        .doc(targetUserInfo.userId)
+        .get();
+
+        if(conversationExist.exists){
+            const cExistData: any = conversationExist.data();
+            const conversationFound = await admin.firestore()
+            .collection(BUSINESS_COLLECTION)
+            .doc(requestedUser.business)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(cExistData.conversationId)
+            .get();
+
+            if(conversationFound.exists){
+                console.log("CONVERSATION EXIST ++")
+                const currentConversationId = conversationFound.id;
+                const currentConversation = conversationFound.data() as IConversation;
+
+                return { 
+                    user: targetUserInfo, 
+                    conversationId: currentConversationId, 
+                    unseenCount: cExistData.unseenCount, 
+                    lastMessageTime: currentConversation.lastMessageTime,
+                    displayMessage: currentConversation.displayMessage
+                } as IConversationResponse;
+            }
+        }
+
         // Create new conversation
         const conversationRef = await admin
             .firestore()
@@ -98,7 +131,7 @@ export const newConversation = functions.region(REGION).https.onCall(async (targ
                 members: {
                     [requestedUser.userId]: true, 
                     [targetUser]: true},
-            })
+            });
 
 
         // create new node in user requested node
@@ -136,6 +169,7 @@ export const newConversation = functions.region(REGION).https.onCall(async (targ
         } as IConversationResponse;
         
     } catch (error) {
+        console.error(error)
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });

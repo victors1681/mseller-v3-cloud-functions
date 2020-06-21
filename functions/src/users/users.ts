@@ -187,11 +187,10 @@ export const getUsersRelated = functions.region(REGION).https.onCall(async (data
         const userRecords = await admin
             .firestore()
             .collection(USER_COLLECTION)
-            .where('business', '==', requestedUser.business)
+            .where('business', '==', requestedUser.business) 
             .get();
-        const usersWithId = userRecords.docs.map((doc) => ({ userId: doc.id, ...doc.data() }));
+        const usersWithId = userRecords.docs.filter(f=> f.id !== requestedUser.userId).map((doc) => ({ userId: doc.id, ...doc.data() }));
 
-        console.log('users: ', usersWithId);
         return usersWithId;
     } catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);

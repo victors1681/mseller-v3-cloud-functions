@@ -183,8 +183,7 @@ exports.getUsersRelated = functions.region(REGION).https.onCall(async (data, con
             .collection(index_1.USER_COLLECTION)
             .where('business', '==', requestedUser.business)
             .get();
-        const usersWithId = userRecords.docs.map((doc) => (Object.assign({ userId: doc.id }, doc.data())));
-        console.log('users: ', usersWithId);
+        const usersWithId = userRecords.docs.filter(f => f.id !== requestedUser.userId).map((doc) => (Object.assign({ userId: doc.id }, doc.data())));
         return usersWithId;
     }
     catch (error) {

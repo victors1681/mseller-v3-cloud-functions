@@ -86,6 +86,35 @@ exports.newConversation = functions.region(REGION).https.onCall(async (targetUse
         if (!requestedUser.business) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
+        //Check if conversation exist
+        const conversationExist = await admin
+            .firestore()
+            .collection(index_1.USER_COLLECTION)
+            .doc(requestedUser.userId)
+            .collection(index_1.CONVERSATION_COLLECTION)
+            .doc(targetUserInfo.userId)
+            .get();
+        if (conversationExist.exists) {
+            const cExistData = conversationExist.data();
+            const conversationFound = await admin.firestore()
+                .collection(index_1.BUSINESS_COLLECTION)
+                .doc(requestedUser.business)
+                .collection(index_1.CONVERSATION_COLLECTION)
+                .doc(cExistData.conversationId)
+                .get();
+            if (conversationFound.exists) {
+                console.log("CONVERSATION EXIST ++");
+                const currentConversationId = conversationFound.id;
+                const currentConversation = conversationFound.data();
+                return {
+                    user: targetUserInfo,
+                    conversationId: currentConversationId,
+                    unseenCount: cExistData.unseenCount,
+                    lastMessageTime: currentConversation.lastMessageTime,
+                    displayMessage: currentConversation.displayMessage
+                };
+            }
+        }
         // Create new conversation
         const conversationRef = await admin
             .firestore()
@@ -95,7 +124,10 @@ exports.newConversation = functions.region(REGION).https.onCall(async (targetUse
             .add({
             displayMessage: "",
             lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
-            members: [{ [requestedUser.userId]: true }, { [targetUser]: true }],
+            members: {
+                [requestedUser.userId]: true,
+                [targetUser]: true
+            },
         });
         // create new node in user requested node
         await admin
@@ -128,6 +160,7 @@ exports.newConversation = functions.region(REGION).https.onCall(async (targetUse
         };
     }
     catch (error) {
+        console.error(error);
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });
