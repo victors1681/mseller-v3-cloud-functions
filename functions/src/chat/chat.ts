@@ -86,7 +86,7 @@ export const newConversation = functions.region(REGION).https.onCall(async (targ
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
 
-        //Check if conversation exist
+        // Check if conversation exist
         const conversationExist = await admin
         .firestore()
         .collection(USER_COLLECTION)
@@ -262,6 +262,11 @@ interface ISaveNewMessageProps {
     conversationId: string
  }
 
+ enum MessageStatus {
+     sent = 'sent',
+     read = 'read'
+ }
+
 export const saveNewMessage = functions.region(REGION).https.onCall(async (data: ISaveNewMessageProps, context): Promise<boolean> => {
     try {
         const requestedUser = await getCurrentUserInfo(context);
@@ -276,6 +281,8 @@ export const saveNewMessage = functions.region(REGION).https.onCall(async (data:
             senderId: requestedUser.userId,
             senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
             sentDate: admin.firestore.FieldValue.serverTimestamp(),
+            status: MessageStatus.sent,
+            readDate: admin.firestore.FieldValue.serverTimestamp(),
         }
 
         await admin
@@ -287,6 +294,32 @@ export const saveNewMessage = functions.region(REGION).https.onCall(async (data:
             .collection(MESSAGES_COLLECTION)
             .add(message)
 
+                        // get User Members
+                        const records = await admin
+                        .firestore()
+                        .collection(BUSINESS_COLLECTION)
+                        .doc(requestedUser.business)
+                        .collection(CONVERSATION_COLLECTION)
+                        .doc(conversationId)
+                        .get()
+            
+                        if(records.exists){
+                            const { members }  = records.data() as {[key:string]: boolean};
+                            const membersIds = Object.keys(members).filter(memberId => memberId !== requestedUser.userId);
+                            // update target user conversation unseen Counter
+                            for await ( const memberId of membersIds){ 
+                                await admin
+                                .firestore()
+                                .collection(USER_COLLECTION)
+                                .doc(memberId)
+                                .collection(CONVERSATION_COLLECTION)
+                                .doc(requestedUser.userId) // user requested
+                                .update({
+                                    unseenCount: admin.firestore.FieldValue.increment(1)
+                                });
+                            }
+                        }
+                        
             // update conversation info
             await admin
             .firestore()
@@ -299,31 +332,7 @@ export const saveNewMessage = functions.region(REGION).https.onCall(async (data:
                 lastMessageTime: admin.firestore.FieldValue.serverTimestamp()
             })
     
-            // get User Members
-            const records = await admin
-            .firestore()
-            .collection(BUSINESS_COLLECTION)
-            .doc(requestedUser.business)
-            .collection(CONVERSATION_COLLECTION)
-            .doc(conversationId)
-            .get()
 
-            if(records.exists){
-                const { members }  = records.data() as {[key:string]: boolean};
-                const membersIds = Object.keys(members).filter(memberId => memberId !== requestedUser.userId);
-                // update target user conversation unseen Counter
-                for await ( const memberId of membersIds){ 
-                    await admin
-                    .firestore()
-                    .collection(USER_COLLECTION)
-                    .doc(memberId)
-                    .collection(CONVERSATION_COLLECTION)
-                    .doc(requestedUser.userId) // user requested
-                    .update({
-                        unseenCount: admin.firestore.FieldValue.increment(1)
-                    });
-                }
-            }
             
           return true;
         
@@ -364,6 +373,43 @@ export const resetUnseenCounter = functions.region(REGION).https.onCall(async (d
     } catch (error) {
         console.error(error)
         throw new functions.https.HttpsError('invalid-argument', error.message);
-    }
-    
+    } 
+});
+
+interface ISetMessageStatus {
+    messageId: string
+    status: MessageStatus
+    conversationId: string
+}
+export const setMessageStatus = functions.region(REGION).https.onCall(async (data : ISetMessageStatus, context): Promise<boolean> => {
+    try {
+        const requestedUser = await getCurrentUserInfo(context);
+        const { messageId, status, conversationId } = data;
+        
+        if (!requestedUser.business && messageId && status && conversationId) {
+            console.error(`Invalid parameters conversationId: ${conversationId} messageId: ${messageId} status: ${status}`)
+            throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated or targetUserId');
+        }
+  
+            // update conversation info
+            await admin
+            .firestore()
+            .collection(BUSINESS_COLLECTION)
+            .doc(requestedUser.business)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(conversationId)
+            .collection(MESSAGES_COLLECTION)
+            .doc(messageId)
+            .update({
+                status,
+                readDate: status === 'read' ? admin.firestore.FieldValue.serverTimestamp() : null
+            })
+     
+            
+          return true;
+        
+    } catch (error) {
+        console.error(error)
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    } 
 });

@@ -26,7 +26,7 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
     function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetUnseenCounter = exports.saveNewMessage = exports.getConversationById = exports.getMessages = exports.newConversation = exports.getConversations = void 0;
+exports.setMessageStatus = exports.resetUnseenCounter = exports.saveNewMessage = exports.getConversationById = exports.getMessages = exports.newConversation = exports.getConversations = void 0;
 const admin = __importStar(require("firebase-admin"));
 const functions = __importStar(require("firebase-functions"));
 const index_1 = require("../index");
@@ -219,6 +219,11 @@ exports.getConversationById = async (conversationId, businessId) => {
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 };
+var MessageStatus;
+(function (MessageStatus) {
+    MessageStatus["sent"] = "sent";
+    MessageStatus["read"] = "read";
+})(MessageStatus || (MessageStatus = {}));
 exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, context) => {
     var e_2, _a;
     try {
@@ -232,6 +237,8 @@ exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, cont
             senderId: requestedUser.userId,
             senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
             sentDate: admin.firestore.FieldValue.serverTimestamp(),
+            status: MessageStatus.sent,
+            readDate: admin.firestore.FieldValue.serverTimestamp(),
         };
         await admin
             .firestore()
@@ -241,17 +248,6 @@ exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, cont
             .doc(conversationId)
             .collection(index_1.MESSAGES_COLLECTION)
             .add(message);
-        // update conversation info
-        await admin
-            .firestore()
-            .collection(index_1.BUSINESS_COLLECTION)
-            .doc(requestedUser.business)
-            .collection(index_1.CONVERSATION_COLLECTION)
-            .doc(conversationId)
-            .update({
-            displayMessage: content,
-            lastMessageTime: admin.firestore.FieldValue.serverTimestamp()
-        });
         // get User Members
         const records = await admin
             .firestore()
@@ -286,6 +282,17 @@ exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, cont
                 finally { if (e_2) throw e_2.error; }
             }
         }
+        // update conversation info
+        await admin
+            .firestore()
+            .collection(index_1.BUSINESS_COLLECTION)
+            .doc(requestedUser.business)
+            .collection(index_1.CONVERSATION_COLLECTION)
+            .doc(conversationId)
+            .update({
+            displayMessage: content,
+            lastMessageTime: admin.firestore.FieldValue.serverTimestamp()
+        });
         return true;
     }
     catch (error) {
@@ -309,6 +316,34 @@ exports.resetUnseenCounter = functions.region(REGION).https.onCall(async (data, 
             .doc(targetUserId)
             .update({
             unseenCount: 0,
+        });
+        return true;
+    }
+    catch (error) {
+        console.error(error);
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
+exports.setMessageStatus = functions.region(REGION).https.onCall(async (data, context) => {
+    try {
+        const requestedUser = await users_1.getCurrentUserInfo(context);
+        const { messageId, status, conversationId } = data;
+        if (!requestedUser.business && messageId && status && conversationId) {
+            console.error(`Invalid parameters conversationId: ${conversationId} messageId: ${messageId} status: ${status}`);
+            throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated or targetUserId');
+        }
+        // update conversation info
+        await admin
+            .firestore()
+            .collection(index_1.BUSINESS_COLLECTION)
+            .doc(requestedUser.business)
+            .collection(index_1.CONVERSATION_COLLECTION)
+            .doc(conversationId)
+            .collection(index_1.MESSAGES_COLLECTION)
+            .doc(messageId)
+            .update({
+            status: status,
+            readDate: status === 'read' ? admin.firestore.FieldValue.serverTimestamp() : null
         });
         return true;
     }
