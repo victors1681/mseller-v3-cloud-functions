@@ -260,6 +260,7 @@ export const getConversationById = async (conversationId: string, businessId: st
 interface ISaveNewMessageProps {
     content: string,
     conversationId: string
+    url?: string
  }
 
  enum MessageStatus {
@@ -270,19 +271,23 @@ interface ISaveNewMessageProps {
 export const saveNewMessage = functions.region(REGION).https.onCall(async (data: ISaveNewMessageProps, context): Promise<boolean> => {
     try {
         const requestedUser = await getCurrentUserInfo(context);
-        const { content, conversationId } = data;
+        const { content, conversationId, url } = data;
         
-        if (!requestedUser.business && content && conversationId) {
+        if (!requestedUser.business && conversationId) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated, content, and conversationId');
         }
 
-        const message =  {
+        const message: any =  {
             content,
             senderId: requestedUser.userId,
             senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
             sentDate: admin.firestore.FieldValue.serverTimestamp(),
             status: MessageStatus.sent,
             readDate: admin.firestore.FieldValue.serverTimestamp(),
+        }
+
+        if(url){
+            message.url = url
         }
 
         await admin

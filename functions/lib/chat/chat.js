@@ -86,7 +86,7 @@ exports.newConversation = functions.region(REGION).https.onCall(async (targetUse
         if (!requestedUser.business) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
-        //Check if conversation exist
+        // Check if conversation exist
         const conversationExist = await admin
             .firestore()
             .collection(index_1.USER_COLLECTION)
@@ -228,8 +228,8 @@ exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, cont
     var e_2, _a;
     try {
         const requestedUser = await users_1.getCurrentUserInfo(context);
-        const { content, conversationId } = data;
-        if (!requestedUser.business && content && conversationId) {
+        const { content, conversationId, url } = data;
+        if (!requestedUser.business && conversationId) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated, content, and conversationId');
         }
         const message = {
@@ -240,6 +240,9 @@ exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, cont
             status: MessageStatus.sent,
             readDate: admin.firestore.FieldValue.serverTimestamp(),
         };
+        if (url) {
+            message.url = url;
+        }
         await admin
             .firestore()
             .collection(index_1.BUSINESS_COLLECTION)
@@ -342,7 +345,7 @@ exports.setMessageStatus = functions.region(REGION).https.onCall(async (data, co
             .collection(index_1.MESSAGES_COLLECTION)
             .doc(messageId)
             .update({
-            status: status,
+            status,
             readDate: status === 'read' ? admin.firestore.FieldValue.serverTimestamp() : null
         });
         return true;
