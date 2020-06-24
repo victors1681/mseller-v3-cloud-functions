@@ -30,8 +30,9 @@ exports.setMessageStatus = exports.resetUnseenCounter = exports.saveNewMessage =
 const admin = __importStar(require("firebase-admin"));
 const functions = __importStar(require("firebase-functions"));
 const index_1 = require("../index");
+const messaging_1 = require("../messaging");
 const users_1 = require("../users");
-const REGION = "us-east1";
+const REGION = 'us-east1';
 /**
  * based on the user request it get the user who is requesting and get the business id associated
  */
@@ -96,14 +97,15 @@ exports.newConversation = functions.region(REGION).https.onCall(async (targetUse
             .get();
         if (conversationExist.exists) {
             const cExistData = conversationExist.data();
-            const conversationFound = await admin.firestore()
+            const conversationFound = await admin
+                .firestore()
                 .collection(index_1.BUSINESS_COLLECTION)
                 .doc(requestedUser.business)
                 .collection(index_1.CONVERSATION_COLLECTION)
                 .doc(cExistData.conversationId)
                 .get();
             if (conversationFound.exists) {
-                console.log("CONVERSATION EXIST ++");
+                console.log('CONVERSATION EXIST ++');
                 const currentConversationId = conversationFound.id;
                 const currentConversation = conversationFound.data();
                 return {
@@ -111,7 +113,7 @@ exports.newConversation = functions.region(REGION).https.onCall(async (targetUse
                     conversationId: currentConversationId,
                     unseenCount: cExistData.unseenCount,
                     lastMessageTime: currentConversation.lastMessageTime,
-                    displayMessage: currentConversation.displayMessage
+                    displayMessage: currentConversation.displayMessage,
                 };
             }
         }
@@ -122,11 +124,11 @@ exports.newConversation = functions.region(REGION).https.onCall(async (targetUse
             .doc(requestedUser.business)
             .collection(index_1.CONVERSATION_COLLECTION)
             .add({
-            displayMessage: "",
+            displayMessage: '',
             lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
             members: {
                 [requestedUser.userId]: true,
-                [targetUser]: true
+                [targetUser]: true,
             },
         });
         // create new node in user requested node
@@ -138,7 +140,7 @@ exports.newConversation = functions.region(REGION).https.onCall(async (targetUse
             .doc(targetUser)
             .set({
             conversationId: conversationRef.id,
-            unseenCount: 0
+            unseenCount: 0,
         });
         // create new node in targetUser
         await admin
@@ -149,14 +151,14 @@ exports.newConversation = functions.region(REGION).https.onCall(async (targetUse
             .doc(requestedUser.userId)
             .set({
             conversationId: conversationRef.id,
-            unseenCount: 0
+            unseenCount: 0,
         });
         return {
             user: targetUserInfo,
             conversationId: conversationRef.id,
             unseenCount: 0,
             lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
-            displayMessage: ""
+            displayMessage: '',
         };
     }
     catch (error) {
@@ -180,7 +182,7 @@ exports.getMessages = functions.region(REGION).https.onCall(async (conversationI
             .collection(index_1.MESSAGES_COLLECTION)
             .get();
         if (messages) {
-            const messagesRecords = messages.docs.map(d => (Object.assign({ messageId: d.id }, d.data())));
+            const messagesRecords = messages.docs.map((d) => (Object.assign({ messageId: d.id }, d.data())));
             return messagesRecords;
         }
         return [];
@@ -196,7 +198,13 @@ const getConversationInfo = async (doc) => {
         const unseenCount = doc.data().unseenCount;
         const userInfo = await users_1.getUserById(userId);
         const conversationInfo = await exports.getConversationById(conversationId, userInfo.business);
-        return { user: userInfo, conversationId, unseenCount, lastMessageTime: conversationInfo === null || conversationInfo === void 0 ? void 0 : conversationInfo.lastMessageTime, displayMessage: conversationInfo === null || conversationInfo === void 0 ? void 0 : conversationInfo.displayMessage };
+        return {
+            user: userInfo,
+            conversationId,
+            unseenCount,
+            lastMessageTime: conversationInfo === null || conversationInfo === void 0 ? void 0 : conversationInfo.lastMessageTime,
+            displayMessage: conversationInfo === null || conversationInfo === void 0 ? void 0 : conversationInfo.displayMessage,
+        };
     }
     catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);
@@ -208,7 +216,13 @@ const getConversationInfo = async (doc) => {
  */
 exports.getConversationById = async (conversationId, businessId) => {
     try {
-        const snapshot = await admin.firestore().collection(index_1.BUSINESS_COLLECTION).doc(businessId).collection(index_1.CONVERSATION_COLLECTION).doc(conversationId).get();
+        const snapshot = await admin
+            .firestore()
+            .collection(index_1.BUSINESS_COLLECTION)
+            .doc(businessId)
+            .collection(index_1.CONVERSATION_COLLECTION)
+            .doc(conversationId)
+            .get();
         const conversationRecord = snapshot.data();
         if (conversationRecord) {
             return Object.assign({ conversationId }, conversationRecord);
@@ -228,7 +242,7 @@ exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, cont
     var e_2, _a;
     try {
         const requestedUser = await users_1.getCurrentUserInfo(context);
-        const { content, conversationId, url } = data;
+        const { content, conversationId, url, targetUser } = data;
         if (!requestedUser.business && conversationId) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated, content, and conversationId');
         }
@@ -261,7 +275,7 @@ exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, cont
             .get();
         if (records.exists) {
             const { members } = records.data();
-            const membersIds = Object.keys(members).filter(memberId => memberId !== requestedUser.userId);
+            const membersIds = Object.keys(members).filter((memberId) => memberId !== requestedUser.userId);
             try {
                 // update target user conversation unseen Counter
                 for (var membersIds_1 = __asyncValues(membersIds), membersIds_1_1; membersIds_1_1 = await membersIds_1.next(), !membersIds_1_1.done;) {
@@ -273,7 +287,7 @@ exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, cont
                         .collection(index_1.CONVERSATION_COLLECTION)
                         .doc(requestedUser.userId) // user requested
                         .update({
-                        unseenCount: admin.firestore.FieldValue.increment(1)
+                        unseenCount: admin.firestore.FieldValue.increment(1),
                     });
                 }
             }
@@ -294,8 +308,27 @@ exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, cont
             .doc(conversationId)
             .update({
             displayMessage: content,
-            lastMessageTime: admin.firestore.FieldValue.serverTimestamp()
+            lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
         });
+        // Notify only one user. Currently support chat one to one
+        // Future update it should notify all user in the group
+        if (targetUser) {
+            const { userId, firstName, lastName } = targetUser;
+            const notificationData = {
+                targetUserId: userId,
+                payload: {
+                    notification: {
+                        title: `${firstName} ${lastName}`,
+                        body: content,
+                    },
+                    data: {
+                        conversationId,
+                    },
+                },
+            };
+            // Notify target user
+            await messaging_1.sendNotificationToUserByIdLocal(notificationData);
+        }
         return true;
     }
     catch (error) {
@@ -346,7 +379,7 @@ exports.setMessageStatus = functions.region(REGION).https.onCall(async (data, co
             .doc(messageId)
             .update({
             status,
-            readDate: status === 'read' ? admin.firestore.FieldValue.serverTimestamp() : null
+            readDate: status === 'read' ? admin.firestore.FieldValue.serverTimestamp() : null,
         });
         return true;
     }

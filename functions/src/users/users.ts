@@ -1,8 +1,8 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
-import {  USER_COLLECTION} from "../index";
+import { USER_COLLECTION } from '../index';
 
-const REGION = "us-east1"
+const REGION = 'us-east1';
 
 export enum UserTypeEnum {
     seller = 'seller',
@@ -21,32 +21,29 @@ export const getCurrentUserInfo = async (context: functions.https.CallableContex
         throw new functions.https.HttpsError('invalid-argument', 'unable to find the user id');
     }
 
-    const userData = await getUserById(userId) 
+    const userData = await getUserById(userId);
 
     return userData;
 };
 
 /**
  * get user information from the ID
- * @param userId 
+ * @param userId
  */
 
 export const getUserById = async (userId: string): Promise<IUser> => {
+    try {
+        const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
+        const userData = snapshot.data();
+        if (!userData) {
+            throw new functions.https.HttpsError('not-found', `user ${userId} not found ${userData}`);
+        }
 
-    try{
-    const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
-    const userData = snapshot.data();  
-    if (!userData) {
-       
-        throw new functions.https.HttpsError('not-found', `user ${userId} not found ${userData}`);
+        return { ...userData, userId } as any;
+    } catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
     }
-
-    return { ...userData, userId } as any;
-    
-}catch(error){
-    throw new functions.https.HttpsError('invalid-argument', error.message);
-}
-}
+};
 
 export const addUser = functions.region(REGION).https.onCall(async (data: IUser, context) => {
     try {
@@ -179,7 +176,7 @@ export const userById = functions.region(REGION).https.onCall(async (userId, con
 export const getUsersRelated = functions.region(REGION).https.onCall(async (data, context) => {
     try {
         const requestedUser = await getCurrentUserInfo(context);
- 
+
         if (!requestedUser.business) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
@@ -187,9 +184,11 @@ export const getUsersRelated = functions.region(REGION).https.onCall(async (data
         const userRecords = await admin
             .firestore()
             .collection(USER_COLLECTION)
-            .where('business', '==', requestedUser.business) 
+            .where('business', '==', requestedUser.business)
             .get();
-        const usersWithId = userRecords.docs.filter(f=> f.id !== requestedUser.userId).map((doc) => ({ userId: doc.id, ...doc.data() }));
+        const usersWithId = userRecords.docs
+            .filter((f) => f.id !== requestedUser.userId)
+            .map((doc) => ({ userId: doc.id, ...doc.data() }));
 
         return usersWithId;
     } catch (error) {

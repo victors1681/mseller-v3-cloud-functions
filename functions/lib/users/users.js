@@ -23,7 +23,7 @@ exports.getUsersRelated = exports.userById = exports.deleteUser = exports.update
 const admin = __importStar(require("firebase-admin"));
 const functions = __importStar(require("firebase-functions"));
 const index_1 = require("../index");
-const REGION = "us-east1";
+const REGION = 'us-east1';
 var UserTypeEnum;
 (function (UserTypeEnum) {
     UserTypeEnum["seller"] = "seller";
@@ -183,7 +183,9 @@ exports.getUsersRelated = functions.region(REGION).https.onCall(async (data, con
             .collection(index_1.USER_COLLECTION)
             .where('business', '==', requestedUser.business)
             .get();
-        const usersWithId = userRecords.docs.filter(f => f.id !== requestedUser.userId).map((doc) => (Object.assign({ userId: doc.id }, doc.data())));
+        const usersWithId = userRecords.docs
+            .filter((f) => f.id !== requestedUser.userId)
+            .map((doc) => (Object.assign({ userId: doc.id }, doc.data())));
         return usersWithId;
     }
     catch (error) {
