@@ -16,18 +16,9 @@ export interface IMessagePayload {
     };
 }
 
-export interface IMessageNotificationOption {
-    priority: 'high';
-    timeToLive: number;
-}
-
-export const sendUserNotification = async (
-    registrationToken: string,
-    payload: IMessagePayload,
-    options?: IMessageNotificationOption,
-): Promise<boolean> => {
+export const sendUserNotification = async (registrationToken: string, payload: IMessagePayload): Promise<boolean> => {
     try {
-        await admin.messaging().sendToDevice(registrationToken, payload, options);
+        await admin.messaging().send({ token: registrationToken, ...payload });
 
         console.log('message sent');
         return true;

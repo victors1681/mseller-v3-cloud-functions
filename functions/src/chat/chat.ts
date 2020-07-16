@@ -360,6 +360,28 @@ export const saveNewMessage = functions.region(REGION).https.onCall(
             if (targetUser) {
                 const { userId, firstName, lastName } = targetUser;
 
+                // get all unseen notifications
+                const unseenRecords = await admin
+                    .firestore()
+                    .collection(USER_COLLECTION)
+                    .doc(targetUser.userId)
+                    .collection(CONVERSATION_COLLECTION)
+                    .where('unseenCount', '>', 0)
+                    .get();
+
+                let badgeTotal = 1;
+
+                if (!unseenRecords.empty) {
+                    badgeTotal = unseenRecords.docs
+                        .map((userConversation) => {
+                            const currentData = userConversation.data();
+                            return currentData.unseenCount;
+                        })
+                        .reduce((acc, current) => {
+                            return acc + current;
+                        }, 0);
+                }
+
                 const notificationData = {
                     targetUserId: userId,
                     payload: {
@@ -369,6 +391,13 @@ export const saveNewMessage = functions.region(REGION).https.onCall(
                         },
                         data: {
                             conversationId,
+                        },
+                        apns: {
+                            payload: {
+                                aps: {
+                                    badge: badgeTotal,
+                                },
+                            },
                         },
                     },
                 };

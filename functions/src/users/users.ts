@@ -77,7 +77,7 @@ export const addUser = functions.region(REGION).https.onCall(async (data: IUser,
                 .firestore()
                 .collection(USER_COLLECTION)
                 .doc(userRecord.uid)
-                .set({ ...data, business: data.business });
+                .set({ ...data, userId: userRecord.uid, business: data.business });
 
             console.log('Successfully created new user:', userRecord.uid);
         }

@@ -22,9 +22,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendNotificationToUserByIdLocal = exports.getTokenByUserId = exports.sendUserNotification = void 0;
 const admin = __importStar(require("firebase-admin"));
 const index_1 = require("../../index");
-exports.sendUserNotification = async (registrationToken, payload, options) => {
+exports.sendUserNotification = async (registrationToken, payload) => {
     try {
-        await admin.messaging().sendToDevice(registrationToken, payload, options);
+        await admin.messaging().send(Object.assign({ token: registrationToken }, payload));
         console.log('message sent');
         return true;
     }

@@ -314,6 +314,25 @@ exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, cont
         // Future update it should notify all user in the group
         if (targetUser) {
             const { userId, firstName, lastName } = targetUser;
+            // get all unseen notifications
+            const unseenRecords = await admin
+                .firestore()
+                .collection(index_1.USER_COLLECTION)
+                .doc(targetUser.userId)
+                .collection(index_1.CONVERSATION_COLLECTION)
+                .where('unseenCount', '>', 0)
+                .get();
+            let badgeTotal = 1;
+            if (!unseenRecords.empty) {
+                badgeTotal = unseenRecords.docs
+                    .map((userConversation) => {
+                    const currentData = userConversation.data();
+                    return currentData.unseenCount;
+                })
+                    .reduce((acc, current) => {
+                    return acc + current;
+                }, 0);
+            }
             const notificationData = {
                 targetUserId: userId,
                 payload: {
@@ -323,6 +342,13 @@ exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, cont
                     },
                     data: {
                         conversationId,
+                    },
+                    apns: {
+                        payload: {
+                            aps: {
+                                badge: badgeTotal,
+                            },
+                        },
                     },
                 },
             };
