@@ -47,7 +47,7 @@ export const getUserById = async (userId: string): Promise<IUser> => {
 
 export const addUser = functions.region(REGION).https.onCall(async (data: IUser, context) => {
     try {
-        const { email, password, firstName, lastName } = data;
+        const { email, password, firstName, lastName, photoURL } = data;
         const displayName = `${firstName} ${lastName}`;
 
         if (!email && !password) {
@@ -68,6 +68,7 @@ export const addUser = functions.region(REGION).https.onCall(async (data: IUser,
             password,
             displayName,
             disabled: false,
+            photoURL
         });
 
         if (userRecord) {

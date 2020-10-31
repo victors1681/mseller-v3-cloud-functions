@@ -62,7 +62,7 @@ exports.getUserById = async (userId) => {
 };
 exports.addUser = functions.region(REGION).https.onCall(async (data, context) => {
     try {
-        const { email, password, firstName, lastName } = data;
+        const { email, password, firstName, lastName, photoURL } = data;
         const displayName = `${firstName} ${lastName}`;
         if (!email && !password) {
             throw Error('email and password are mandatory');
@@ -80,6 +80,7 @@ exports.addUser = functions.region(REGION).https.onCall(async (data, context) =>
             password,
             displayName,
             disabled: false,
+            photoURL
         });
         if (userRecord) {
             delete data.password;
@@ -87,7 +88,7 @@ exports.addUser = functions.region(REGION).https.onCall(async (data, context) =>
                 .firestore()
                 .collection(index_1.USER_COLLECTION)
                 .doc(userRecord.uid)
-                .set(Object.assign(Object.assign({}, data), { business: data.business }));
+                .set(Object.assign(Object.assign({}, data), { userId: userRecord.uid, business: data.business }));
             console.log('Successfully created new user:', userRecord.uid);
         }
         return { result: 'user created', userId: userRecord.uid };
