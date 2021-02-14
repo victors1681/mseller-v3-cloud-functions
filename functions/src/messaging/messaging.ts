@@ -1,8 +1,14 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
-import { FCM_COLLECTION } from '../index';
-// import { getCurrentUserInfo, getUserById } from "../users";
-import { getTokenByUserId, ISendNotificationToUserById, sendUserNotification } from './helpers';
+import { FCM_COLLECTION, USER_COLLECTION } from '../index';
+import { getCurrentUserInfo } from '../users';
+import {
+    getTokenByUserId,
+    ISendNotificationToUserById,
+    sendUserNotification,
+    sendNotificationToUserByIdLocal,
+    IMessagePayload,
+} from './helpers';
 const REGION = 'us-east1';
 
 /**
@@ -34,7 +40,6 @@ export const registerFCMToken = functions.region(REGION).https.onCall(
 /**
  * send notification message based only on userId
  */
-
 export const sendNotificationToUserById = functions.region(REGION).https.onCall(
     async (data: ISendNotificationToUserById, context): Promise<boolean> => {
         try {
@@ -54,6 +59,84 @@ export const sendNotificationToUserById = functions.region(REGION).https.onCall(
             return await sendUserNotification(targetUserId, payload);
         } catch (error) {
             console.error(error.message);
+            throw new functions.https.HttpsError('invalid-argument', error.message);
+        }
+    },
+);
+
+interface ISimpleNotification {
+    targetUserId?: string;
+    title: string;
+    body: string;
+}
+
+export const sendSimpleNotificationToUserById = functions.region(REGION).https.onCall(
+    async (data: ISimpleNotification, _): Promise<boolean> => {
+        try {
+            if (data.targetUserId) {
+                const payload: IMessagePayload = {
+                    notification: {
+                        title: data.title,
+                        body: data.body,
+                    },
+                    data: {},
+                    apns: {
+                        payload: {
+                            aps: {
+                                badge: 1,
+                            },
+                        },
+                    },
+                };
+                await sendNotificationToUserByIdLocal({ targetUserId: data.targetUserId, payload });
+
+                return true;
+            } else {
+                throw new functions.https.HttpsError('invalid-argument', `invalid targetUserId: ${data} messaging.ts`);
+            }
+        } catch (error) {
+            console.error(error.message);
+            throw new functions.https.HttpsError('invalid-argument', error.message);
+        }
+    },
+);
+
+/**
+ * Notify all users of the same company
+ * data: {title: @string, body: @string}
+ */
+
+export const notifyAllUsers = functions.region(REGION).https.onCall(
+    async (data: ISimpleNotification, context): Promise<boolean> => {
+        try {
+            const requestedUser = await getCurrentUserInfo(context);
+
+            const userRecords = await admin
+                .firestore()
+                .collection(USER_COLLECTION)
+                .where('business', '==', requestedUser.business)
+                .get();
+
+            userRecords.docs.forEach(async (doc) => {
+                //[{ id: 'filWVKQDdcMtXswkT4L3ohxePEr1' }].forEach(async (doc) => {
+                const payload: IMessagePayload = {
+                    notification: {
+                        ...data,
+                    },
+                    data: {},
+                    apns: {
+                        payload: {
+                            aps: {
+                                badge: 1,
+                            },
+                        },
+                    },
+                };
+                await sendNotificationToUserByIdLocal({ targetUserId: doc.id, payload });
+            });
+
+            return true;
+        } catch (error) {
             throw new functions.https.HttpsError('invalid-argument', error.message);
         }
     },

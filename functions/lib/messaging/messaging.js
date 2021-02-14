@@ -19,11 +19,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendNotificationToUserById = exports.registerFCMToken = void 0;
+exports.notifyAllUsers = exports.sendSimpleNotificationToUserById = exports.sendNotificationToUserById = exports.registerFCMToken = void 0;
 const admin = __importStar(require("firebase-admin"));
 const functions = __importStar(require("firebase-functions"));
 const index_1 = require("../index");
-// import { getCurrentUserInfo, getUserById } from "../users";
+const users_1 = require("../users");
 const helpers_1 = require("./helpers");
 const REGION = 'us-east1';
 /**
@@ -66,6 +66,69 @@ exports.sendNotificationToUserById = functions.region(REGION).https.onCall(async
     }
     catch (error) {
         console.error(error.message);
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
+exports.sendSimpleNotificationToUserById = functions.region(REGION).https.onCall(async (data, _) => {
+    console.log('datadata', data);
+    try {
+        if (data.targetUserId) {
+            const payload = {
+                notification: {
+                    title: data.title,
+                    body: data.body,
+                },
+                data: {},
+                apns: {
+                    payload: {
+                        aps: {
+                            badge: 1,
+                        },
+                    },
+                },
+            };
+            await helpers_1.sendNotificationToUserByIdLocal({ targetUserId: data.targetUserId, payload });
+            return true;
+        }
+        else {
+            throw new functions.https.HttpsError('invalid-argument', `invalid targetUserId: ${data} messaging.ts`);
+        }
+    }
+    catch (error) {
+        console.error(error.message);
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
+/**
+ * Notify all users of the same company
+ * data: {title: @string, body: @string}
+ */
+exports.notifyAllUsers = functions.region(REGION).https.onCall(async (data, context) => {
+    try {
+        const requestedUser = await users_1.getCurrentUserInfo(context);
+        const userRecords = await admin
+            .firestore()
+            .collection(index_1.USER_COLLECTION)
+            .where('business', '==', requestedUser.business)
+            .get();
+        userRecords.docs.forEach(async (doc) => {
+            //[{ id: 'filWVKQDdcMtXswkT4L3ohxePEr1' }].forEach(async (doc) => {
+            const payload = {
+                notification: Object.assign({}, data),
+                data: {},
+                apns: {
+                    payload: {
+                        aps: {
+                            badge: 1,
+                        },
+                    },
+                },
+            };
+            await helpers_1.sendNotificationToUserByIdLocal({ targetUserId: doc.id, payload });
+        });
+        return true;
+    }
+    catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });

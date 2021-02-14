@@ -34,12 +34,16 @@ export const getCurrentUserInfo = async (context: functions.https.CallableContex
 export const getUserById = async (userId: string): Promise<IUser> => {
     try {
         const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
-        const userData = snapshot.data();
-        if (!userData) {
-            throw new functions.https.HttpsError('not-found', `user ${userId} not found ${userData}`);
-        }
 
-        return { ...userData, userId } as any;
+        if (snapshot.exists) {
+            const userData = snapshot.data();
+            return { ...userData, userId } as any;
+        } else {
+            throw new functions.https.HttpsError(
+                'not-found',
+                `user ${userId} not found on ${USER_COLLECTION} File: users.ts functions server. Might be because is looking on Emulator DB`,
+            );
+        }
     } catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
@@ -68,7 +72,7 @@ export const addUser = functions.region(REGION).https.onCall(async (data: IUser,
             password,
             displayName,
             disabled: false,
-            photoURL
+            photoURL,
         });
 
         if (userRecord) {
