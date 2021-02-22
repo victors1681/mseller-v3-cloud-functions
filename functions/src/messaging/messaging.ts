@@ -68,6 +68,7 @@ interface ISimpleNotification {
     targetUserId?: string;
     title: string;
     body: string;
+    imageUrl?: string;
 }
 
 export const sendSimpleNotificationToUserById = functions.region(REGION).https.onCall(
@@ -108,7 +109,7 @@ export const sendSimpleNotificationToUserById = functions.region(REGION).https.o
 
 /**
  * Notify all users of the same company
- * data: {title: @string, body: @string}
+ * data: {title: @string, body: @string, imageUrl?: string}
  */
 
 export const notifyAllUsers = functions.region(REGION).https.onCall(
