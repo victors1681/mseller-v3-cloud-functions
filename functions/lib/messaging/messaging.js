@@ -105,7 +105,7 @@ exports.sendSimpleNotificationToUserById = functions.region(REGION).https.onCall
 });
 /**
  * Notify all users of the same company
- * data: {title: @string, body: @string}
+ * data: {title: @string, body: @string, imageUrl?: string}
  */
 exports.notifyAllUsers = functions.region(REGION).https.onCall(async (data, context) => {
     try {
@@ -117,7 +117,7 @@ exports.notifyAllUsers = functions.region(REGION).https.onCall(async (data, cont
             data: {
                 senderId: requestedUser.userId,
                 senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
-                time: new Date()
+                time: new Date().toISOString()
             },
             apns: {
                 payload: {

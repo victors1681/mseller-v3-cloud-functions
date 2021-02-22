@@ -127,7 +127,7 @@ export const notifyAllUsers = functions.region(REGION).https.onCall(
                 data: {
                   senderId: requestedUser.userId,
                   senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
-                  time: new Date()
+                  time: new Date().toISOString()
                 },
                 apns: {
                     payload: {
