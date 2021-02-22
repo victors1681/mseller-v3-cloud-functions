@@ -84,7 +84,7 @@ export const sendSimpleNotificationToUserById = functions.region(REGION).https.o
                     data: {
                         senderId: requestedUser.userId,
                         senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
-                        time: new Date()
+                        time: new Date().toISOString()
                     },
                     apns: {
                         payload: {

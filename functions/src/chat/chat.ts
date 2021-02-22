@@ -358,7 +358,7 @@ export const saveNewMessage = functions.region(REGION).https.onCall(
             // Future update it should notify all user in the group
 
             if (targetUser) {
-                const { userId, firstName, lastName } = targetUser;
+                const { userId } = targetUser;
 
                 // get all unseen notifications
                 const unseenRecords = await admin
@@ -386,11 +386,14 @@ export const saveNewMessage = functions.region(REGION).https.onCall(
                     targetUserId: userId,
                     payload: {
                         notification: {
-                            title: `${firstName} ${lastName}`,
+                            title: `${requestedUser.firstName} ${requestedUser.lastName}`,
                             body: content,
                         },
                         data: {
                             conversationId,
+                            senderId: requestedUser.userId,
+                            senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
+                            time: new Date().toISOString()
                         },
                         apns: {
                             payload: {
