@@ -69,16 +69,20 @@ exports.sendNotificationToUserById = functions.region(REGION).https.onCall(async
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });
-exports.sendSimpleNotificationToUserById = functions.region(REGION).https.onCall(async (data, _) => {
-    console.log('datadata', data);
+exports.sendSimpleNotificationToUserById = functions.region(REGION).https.onCall(async (data, context) => {
     try {
         if (data.targetUserId) {
+            const requestedUser = await users_1.getCurrentUserInfo(context);
             const payload = {
                 notification: {
                     title: data.title,
                     body: data.body,
                 },
-                data: {},
+                data: {
+                    senderId: requestedUser.userId,
+                    senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
+                    time: new Date()
+                },
                 apns: {
                     payload: {
                         aps: {
@@ -106,26 +110,27 @@ exports.sendSimpleNotificationToUserById = functions.region(REGION).https.onCall
 exports.notifyAllUsers = functions.region(REGION).https.onCall(async (data, context) => {
     try {
         const requestedUser = await users_1.getCurrentUserInfo(context);
-        const userRecords = await admin
-            .firestore()
-            .collection(index_1.USER_COLLECTION)
-            .where('business', '==', requestedUser.business)
-            .get();
-        userRecords.docs.forEach(async (doc) => {
-            //[{ id: 'filWVKQDdcMtXswkT4L3ohxePEr1' }].forEach(async (doc) => {
-            const payload = {
-                notification: Object.assign({}, data),
-                data: {},
-                apns: {
-                    payload: {
-                        aps: {
-                            badge: 1,
-                        },
+        // use topic as business id to notify all subscribers 
+        const topic = requestedUser.business;
+        const message = {
+            notification: Object.assign({}, data),
+            data: {
+                senderId: requestedUser.userId,
+                senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
+                time: new Date()
+            },
+            apns: {
+                payload: {
+                    aps: {
+                        badge: 1,
                     },
                 },
-            };
-            await helpers_1.sendNotificationToUserByIdLocal({ targetUserId: doc.id, payload });
-        });
+            },
+            topic
+        };
+        // Send a message to devices subscribed to the provided topic.
+        const response = await admin.messaging().send(message);
+        console.log('Successfully sent message:', response);
         return true;
     }
     catch (error) {

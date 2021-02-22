@@ -1,13 +1,13 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
-import { FCM_COLLECTION, USER_COLLECTION } from '../index';
+import { FCM_COLLECTION } from '../index';
 import { getCurrentUserInfo } from '../users';
 import {
     getTokenByUserId,
-    ISendNotificationToUserById,
-    sendUserNotification,
-    sendNotificationToUserByIdLocal,
     IMessagePayload,
+    ISendNotificationToUserById,
+    sendNotificationToUserByIdLocal,
+    sendUserNotification,
 } from './helpers';
 const REGION = 'us-east1';
 
@@ -71,15 +71,20 @@ interface ISimpleNotification {
 }
 
 export const sendSimpleNotificationToUserById = functions.region(REGION).https.onCall(
-    async (data: ISimpleNotification, _): Promise<boolean> => {
+    async (data: ISimpleNotification, context): Promise<boolean> => {
         try {
             if (data.targetUserId) {
+                const requestedUser = await getCurrentUserInfo(context);
                 const payload: IMessagePayload = {
                     notification: {
                         title: data.title,
                         body: data.body,
                     },
-                    data: {},
+                    data: {
+                        senderId: requestedUser.userId,
+                        senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
+                        time: new Date()
+                    },
                     apns: {
                         payload: {
                             aps: {
@@ -110,31 +115,33 @@ export const notifyAllUsers = functions.region(REGION).https.onCall(
     async (data: ISimpleNotification, context): Promise<boolean> => {
         try {
             const requestedUser = await getCurrentUserInfo(context);
-
-            const userRecords = await admin
-                .firestore()
-                .collection(USER_COLLECTION)
-                .where('business', '==', requestedUser.business)
-                .get();
-
-            userRecords.docs.forEach(async (doc) => {
-                //[{ id: 'filWVKQDdcMtXswkT4L3ohxePEr1' }].forEach(async (doc) => {
-                const payload: IMessagePayload = {
-                    notification: {
-                        ...data,
-                    },
-                    data: {},
-                    apns: {
-                        payload: {
-                            aps: {
-                                badge: 1,
-                            },
+            
+            // use topic as business id to notify all subscribers 
+            const topic = requestedUser.business;
+ 
+            const message = {
+                notification: {
+                    ...data,
+                },
+                data: {
+                  senderId: requestedUser.userId,
+                  senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
+                  time: new Date()
+                },
+                apns: {
+                    payload: {
+                        aps: {
+                            badge: 1,
                         },
                     },
-                };
-                await sendNotificationToUserByIdLocal({ targetUserId: doc.id, payload });
-            });
-
+                },
+                topic
+              } as any;
+            
+            // Send a message to devices subscribed to the provided topic.
+           const response = await admin.messaging().send(message)
+            console.log('Successfully sent message:', response);
+             
             return true;
         } catch (error) {
             throw new functions.https.HttpsError('invalid-argument', error.message);
