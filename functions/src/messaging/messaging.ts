@@ -69,6 +69,9 @@ interface ISimpleNotification {
     title: string;
     body: string;
     imageUrl?: string;
+    senderImageUrl?: string;
+    type: string;
+    urgent: boolean
 }
 
 export const sendSimpleNotificationToUserById = functions.region(REGION).https.onCall(
@@ -83,6 +86,9 @@ export const sendSimpleNotificationToUserById = functions.region(REGION).https.o
                     },
                     data: {
                         senderId: requestedUser.userId,
+                        senderImageUrl: requestedUser.photoURL ? requestedUser.photoURL : "",
+                        type: "info",
+                        urgent: data.urgent ? data.urgent : "0",
                         senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
                         time: new Date().toISOString()
                     },
@@ -126,6 +132,9 @@ export const notifyAllUsers = functions.region(REGION).https.onCall(
                 },
                 data: {
                   senderId: requestedUser.userId,
+                  senderImageUrl: requestedUser.photoURL ? requestedUser.photoURL : "",
+                  type: "info",
+                  urgent: data.urgent ? data.urgent : "0",
                   senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
                   time: new Date().toISOString()
                 },

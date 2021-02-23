@@ -80,6 +80,9 @@ exports.sendSimpleNotificationToUserById = functions.region(REGION).https.onCall
                 },
                 data: {
                     senderId: requestedUser.userId,
+                    senderImageUrl: requestedUser.photoURL ? requestedUser.photoURL : "",
+                    type: "info",
+                    urgent: data.urgent ? data.urgent : "0",
                     senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
                     time: new Date().toISOString()
                 },
@@ -116,6 +119,9 @@ exports.notifyAllUsers = functions.region(REGION).https.onCall(async (data, cont
             notification: Object.assign({}, data),
             data: {
                 senderId: requestedUser.userId,
+                senderImageUrl: requestedUser.photoURL ? requestedUser.photoURL : "",
+                type: "info",
+                urgent: data.urgent ? data.urgent : "0",
                 senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
                 time: new Date().toISOString()
             },
