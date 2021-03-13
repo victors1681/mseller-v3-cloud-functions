@@ -1,6 +1,6 @@
 interface IUser {
     userId: string;
-    password: string;
+    password?: string;
     email: string;
     photoURL: string;
     business: string;
