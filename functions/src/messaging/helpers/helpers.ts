@@ -11,7 +11,7 @@ export interface IMessagePayload {
         payload: {
             aps: {
                 badge: number;
-                "content-available"?: number
+                "content-available"?: number //wake up the app in background
             };
         };
     };
