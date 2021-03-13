@@ -96,6 +96,7 @@ export const sendSimpleNotificationToUserById = functions.region(REGION).https.o
                         payload: {
                             aps: {
                                 badge: 1,
+                                'content-available': 1
                             },
                         },
                     },
@@ -142,6 +143,7 @@ export const notifyAllUsers = functions.region(REGION).https.onCall(
                     payload: {
                         aps: {
                             badge: 1,
+                            "content-available": 1
                         },
                     },
                 },

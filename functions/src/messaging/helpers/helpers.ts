@@ -11,6 +11,7 @@ export interface IMessagePayload {
         payload: {
             aps: {
                 badge: number;
+                "content-available"?: number
             };
         };
     };
