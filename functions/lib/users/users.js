@@ -19,7 +19,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUsersRelated = exports.userById = exports.deleteUser = exports.updatePassword = exports.updateUser = exports.addUser = exports.getUserById = exports.getCurrentUserInfo = exports.UserTypeEnum = void 0;
+exports.getUsersRelated = exports.userById = exports.deleteUser = exports.updatePassword = exports.transferUser = exports.updateUser = exports.addUser = exports.getUserById = exports.getCurrentUserInfo = exports.UserTypeEnum = void 0;
 const admin = __importStar(require("firebase-admin"));
 const functions = __importStar(require("firebase-functions"));
 const index_1 = require("../index");
@@ -120,6 +120,37 @@ exports.updateUser = functions.region(REGION).https.onCall(async (data, context)
             .doc(userId)
             .set(Object.assign({}, data));
         return { result: 'user updated', userId };
+    }
+    catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
+/**
+ * Transfer seller code between sellers
+ */
+exports.transferUser = functions.region(REGION).https.onCall(async (data, context) => {
+    try {
+        const { sellerSource, sellerTarget } = data;
+        if (!sellerSource || !sellerTarget) {
+            throw new functions.https.HttpsError('invalid-argument', 'seller Source and target needed to transfer code ' + sellerSource + ' ' + sellerTarget);
+        }
+        const sellerSourceData = await exports.getUserById(sellerSource);
+        const sellerTargetData = await exports.getUserById(sellerTarget);
+        await admin
+            .firestore()
+            .collection(index_1.USER_COLLECTION)
+            .doc(sellerSource)
+            .update({
+            sellerCode: sellerTargetData.sellerCode
+        });
+        await admin
+            .firestore()
+            .collection(index_1.USER_COLLECTION)
+            .doc(sellerTarget)
+            .update({
+            sellerCode: sellerSourceData.sellerCode
+        });
+        return { result: 'Seller Transferer' };
     }
     catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);
