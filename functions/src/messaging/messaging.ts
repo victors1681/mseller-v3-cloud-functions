@@ -71,7 +71,7 @@ interface ISimpleNotification {
     imageUrl?: string;
     senderImageUrl?: string;
     type: string;
-    urgent: boolean
+    urgent: boolean;
 }
 
 export const sendSimpleNotificationToUserById = functions.region(REGION).https.onCall(
@@ -86,17 +86,17 @@ export const sendSimpleNotificationToUserById = functions.region(REGION).https.o
                     },
                     data: {
                         senderId: requestedUser.userId,
-                        senderImageUrl: requestedUser.photoURL ? requestedUser.photoURL : "",
-                        type: "info",
-                        urgent: data.urgent ? data.urgent : "0",
+                        senderImageUrl: requestedUser.photoURL ? requestedUser.photoURL : '',
+                        type: 'info',
+                        urgent: data.urgent ? data.urgent : '0',
                         senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
-                        time: new Date().toISOString()
+                        time: new Date().toISOString(),
                     },
                     apns: {
                         payload: {
                             aps: {
                                 badge: 1,
-                                'content-available': 1
+                                'content-available': 1,
                             },
                         },
                     },
@@ -123,37 +123,37 @@ export const notifyAllUsers = functions.region(REGION).https.onCall(
     async (data: ISimpleNotification, context): Promise<boolean> => {
         try {
             const requestedUser = await getCurrentUserInfo(context);
-            
-            // use topic as business id to notify all subscribers 
+
+            // use topic as business id to notify all subscribers
             const topic = requestedUser.business;
- 
+
             const message = {
                 notification: {
                     ...data,
                 },
                 data: {
-                  senderId: requestedUser.userId,
-                  senderImageUrl: requestedUser.photoURL ? requestedUser.photoURL : "",
-                  type: "info",
-                  urgent: data.urgent ? data.urgent : "0",
-                  senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
-                  time: new Date().toISOString()
+                    senderId: requestedUser.userId,
+                    senderImageUrl: requestedUser.photoURL ? requestedUser.photoURL : '',
+                    type: 'info',
+                    urgent: data.urgent ? data.urgent : '0',
+                    senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
+                    time: new Date().toISOString(),
                 },
                 apns: {
                     payload: {
                         aps: {
                             badge: 1,
-                            "content-available": 1
+                            'content-available': 1,
                         },
                     },
                 },
-                topic
-              } as any;
-            
+                topic,
+            } as any;
+
             // Send a message to devices subscribed to the provided topic.
-           const response = await admin.messaging().send(message)
+            const response = await admin.messaging().send(message);
             console.log('Successfully sent message:', response);
-             
+
             return true;
         } catch (error) {
             throw new functions.https.HttpsError('invalid-argument', error.message);

@@ -3,6 +3,7 @@ import * as firebaseAccountCredentials from './serviceAccountKey.json';
 export * from './users';
 export * from './chat';
 export * from './messaging';
+export * from './email';
 
 const serviceAccount = firebaseAccountCredentials as admin.ServiceAccount;
 

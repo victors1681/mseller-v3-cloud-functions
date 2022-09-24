@@ -8,10 +8,15 @@
     "strict": true,
     "target": "es2017",
     "resolveJsonModule": true,
-    "esModuleInterop": true
-  },
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "useUnknownInCatchVariables": false
+  }, 
+  "lib": [
+    "esnext",
+  ],
   "compileOnSave": true,
   "include": [
-    "src"
+    "./src/**/*"
   ]
 }

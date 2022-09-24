@@ -128,29 +128,24 @@ export const updateUser = functions.region(REGION).https.onCall(async (data, con
 export const transferUser = functions.region(REGION).https.onCall(async (data, context) => {
     try {
         const { sellerSource, sellerTarget } = data;
-        
+
         if (!sellerSource || !sellerTarget) {
-            throw new functions.https.HttpsError('invalid-argument', 'seller Source and target needed to transfer code ' + sellerSource + ' ' + sellerTarget);
+            throw new functions.https.HttpsError(
+                'invalid-argument',
+                'seller Source and target needed to transfer code ' + sellerSource + ' ' + sellerTarget,
+            );
         }
 
         const sellerSourceData = await getUserById(sellerSource);
         const sellerTargetData = await getUserById(sellerTarget);
- 
-        await admin
-            .firestore()
-            .collection(USER_COLLECTION)
-            .doc(sellerSource)
-            .update({
-                sellerCode: sellerTargetData.sellerCode
-            })
 
-        await admin
-            .firestore()
-            .collection(USER_COLLECTION)
-            .doc(sellerTarget)
-            .update({
-                sellerCode: sellerSourceData.sellerCode
-            })
+        await admin.firestore().collection(USER_COLLECTION).doc(sellerSource).update({
+            sellerCode: sellerTargetData.sellerCode,
+        });
+
+        await admin.firestore().collection(USER_COLLECTION).doc(sellerTarget).update({
+            sellerCode: sellerSourceData.sellerCode,
+        });
 
         return { result: 'Seller Transferer' };
     } catch (error) {

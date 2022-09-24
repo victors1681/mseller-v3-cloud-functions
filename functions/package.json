@@ -3,7 +3,7 @@
   "scripts": {
     "lint": "tslint --project tsconfig.json --fix",
     "build": "tsc",
-    "serve": "npm run prettier-format && npm run build && firebase emulators:start --only functions",
+    "dev": "npm run prettier-format && npm run build && firebase emulators:start --only functions",
     "serve:all": "npm run prettier-format && npm run build && firebase emulators:start",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
@@ -13,7 +13,7 @@
     "prettier-format": "prettier --config .prettierrc.js 'src/**/*.ts' --write"
   },
   "engines": {
-    "node": "10"
+    "node": "14"
   },
   "main": "lib/index.js",
   "dependencies": {
@@ -21,15 +21,15 @@
     "cors": "^2.8.5",
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-prettier": "^3.1.3",
-    "firebase-admin": "8.12.1",
-    "firebase-functions": "^3.7.0",
+    "firebase-admin": "^11.0.1",
+    "firebase-functions": "^3.23.0",
     "prettier": "^2.0.5"
   },
   "devDependencies": {
     "firebase-functions-test": "^0.2.0",
     "tslint": "^5.12.0",
     "tslint-config-prettier": "^1.18.0",
-    "typescript": "^3.8.0"
+    "typescript": "^4.8.3"
   },
   "private": true
 }
