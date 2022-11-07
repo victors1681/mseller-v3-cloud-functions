@@ -6,7 +6,7 @@ import { createInvoice } from 'pdf-documents';
 import { Invoice } from './Invoice';
 
 const BUCKET_NAME = 'mobile-seller-documents';
-
+const LINK_DAYS_SIGNED = 15 //days
 /**
  * based on the user request it get the user who is requesting and get the business id associated
  */
@@ -20,8 +20,8 @@ export const generatePDF = functions.region(REGION).https.onCall(async (data: In
         }
 
         const date = new Date();
-        const day = date.getDay().toString().padStart(2, '0');
-        const month = date.getMonth().toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
         const year = date.getFullYear().toString();
         const fileName = uuid.v4();
         const path = `${requestedUser.business}/${year}-${month}/${day}/${fileName}.pdf`;
@@ -33,7 +33,7 @@ export const generatePDF = functions.region(REGION).https.onCall(async (data: In
         const url = await file.getSignedUrl({
             version: 'v4',
             action: 'read',
-            expires: Date.now() + 1000 * 60 * 60,
+            expires: Date.now()  + 1000 * 86400 * LINK_DAYS_SIGNED, 
         });
 
         return { url };
