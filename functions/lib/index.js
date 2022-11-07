@@ -27,18 +27,20 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FCM_COLLECTION = exports.USER_COLLECTION = exports.MESSAGES_COLLECTION = exports.BUSINESS_COLLECTION = exports.CONVERSATION_COLLECTION = exports.REGION = void 0;
+exports.REGION = 'us-east1';
 const admin = __importStar(require("firebase-admin"));
 const firebaseAccountCredentials = __importStar(require("./serviceAccountKey.json"));
 __exportStar(require("./users"), exports);
 __exportStar(require("./chat"), exports);
 __exportStar(require("./messaging"), exports);
 __exportStar(require("./email"), exports);
+__exportStar(require("./documents"), exports);
 const serviceAccount = firebaseAccountCredentials;
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     databaseURL: 'https://mobile-seller-v3.firebaseio.com',
+    storageBucket: 'mobile-seller-v3.appspot.com',
 });
-exports.REGION = 'us-east1';
 exports.CONVERSATION_COLLECTION = 'conversations';
 exports.BUSINESS_COLLECTION = 'business';
 exports.MESSAGES_COLLECTION = 'messages';

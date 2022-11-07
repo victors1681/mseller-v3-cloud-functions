@@ -93,6 +93,8 @@ const payload = {
  */
 exports.sendEmailTemplate = functions.region(index_1.REGION).https.onCall(async (data, context) => {
     try {
+        console.log('datadata:', data);
+        return;
         const requestedUser = await (0, index_1.getCurrentUserInfo)(context);
         if (!requestedUser.business) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');

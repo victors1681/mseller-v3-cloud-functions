@@ -1,18 +1,19 @@
+export const REGION = 'us-east1';
 import * as admin from 'firebase-admin';
 import * as firebaseAccountCredentials from './serviceAccountKey.json';
 export * from './users';
 export * from './chat';
 export * from './messaging';
 export * from './email';
+export * from './documents';
 
 const serviceAccount = firebaseAccountCredentials as admin.ServiceAccount;
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     databaseURL: 'https://mobile-seller-v3.firebaseio.com',
+    storageBucket: 'mobile-seller-v3.appspot.com',
 });
-
-export const REGION = 'us-east1';
 
 export const CONVERSATION_COLLECTION = 'conversations';
 export const BUSINESS_COLLECTION = 'business';

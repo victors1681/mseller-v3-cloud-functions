@@ -13,3 +13,7 @@ interface IContext {
         };
     };
 }
+
+declare module 'pdf-documents' {
+    const createInvoice: (data: Invoice, file: any) => Promise<string>;
+}
