@@ -1,11 +1,11 @@
 import axios, { AxiosRequestConfig } from 'axios';
 
-export const sendMessage = async (data: any) => {
+export const sendMessage = async (data: any, token: string, phoneNumberId: string) => {
     const config: AxiosRequestConfig<any> = {
         method: 'post',
-        url: `https://graph.facebook.com/${process.env.VERSION}/${process.env.PHONE_NUMBER_ID}/messages`,
+        url: `https://graph.facebook.com/${process.env.VERSION}/${phoneNumberId}/messages`,
         headers: {
-            Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
         },
         data,

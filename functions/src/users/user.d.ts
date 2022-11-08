@@ -4,6 +4,7 @@ interface IUser {
     email: string;
     photoURL: string;
     business: string;
+    businessId: string;
     editPrice: boolean;
     filterClients: boolean;
     firstName: string;

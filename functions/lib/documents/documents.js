@@ -28,24 +28,41 @@ const storage_1 = require("firebase-admin/storage");
 const functions = __importStar(require("firebase-functions"));
 const pdf_documents_1 = require("pdf-documents");
 const uuid = __importStar(require("uuid"));
+const business_1 = require("../business");
 const index_1 = require("../index");
 const whatsapp_1 = require("../whatsapp");
 const BUCKET_NAME = 'mobile-seller-documents';
 const LINK_DAYS_SIGNED = 604800;
-const sendWhatsappNotification = async (data, url) => {
-    var _a, _b, _c, _d, _e;
-    if (!((_a = data.whatsapp) === null || _a === void 0 ? void 0 : _a.template) && !((_b = data.whatsapp) === null || _b === void 0 ? void 0 : _b.recipient)) {
+const sendWhatsappNotification = async (data, url, businessId) => {
+    var _a, _b, _c, _d, _e, _f, _g;
+    if (!((_a = data.whatsapp) === null || _a === void 0 ? void 0 : _a.template) || !((_b = data.whatsapp) === null || _b === void 0 ? void 0 : _b.recipient)) {
+        functions.logger.warn("User data does not contain template name or recipient undefined");
+        return;
+    }
+    // get business data
+    const businessData = await (0, business_1.getBusinessById)(businessId);
+    functions.logger.debug(businessData);
+    const whatsappConfig = (_d = (_c = businessData.config) === null || _c === void 0 ? void 0 : _c.integrations) === null || _d === void 0 ? void 0 : _d.find(f => f.provider === "whatsapp");
+    if (!whatsappConfig || (whatsappConfig === null || whatsappConfig === void 0 ? void 0 : whatsappConfig.enabled) === false) {
+        functions.logger.warn("whatsappConfig undefined or is not enabled in configuration");
+        return;
+    }
+    const { token, phoneNumberId, devPhoneNumberId, devToken, isDevelopment } = whatsappConfig;
+    const currentToken = isDevelopment ? devToken : token;
+    const currentPhoneNumberId = isDevelopment ? devPhoneNumberId : phoneNumberId;
+    if (!currentToken || !currentPhoneNumberId) {
+        functions.logger.warn("currentToken or currentPhoneNumberId undefined", { currentToken, currentPhoneNumberId });
         return;
     }
     const payload = {
-        template: (_c = data.whatsapp) === null || _c === void 0 ? void 0 : _c.template,
-        recipient: (_d = data.whatsapp) === null || _d === void 0 ? void 0 : _d.recipient,
+        template: (_e = data.whatsapp) === null || _e === void 0 ? void 0 : _e.template,
+        recipient: (_f = data.whatsapp) === null || _f === void 0 ? void 0 : _f.recipient,
         pdfUrl: url,
-        fileName: (_e = data.whatsapp) === null || _e === void 0 ? void 0 : _e.fileName,
+        fileName: (_g = data.whatsapp) === null || _g === void 0 ? void 0 : _g.fileName,
         sellerName: data.customer.seller,
     };
     const template = (0, whatsapp_1.getInvoiceTemplate)(payload);
-    const result = await (0, whatsapp_1.sendMessage)(template);
+    const result = await (0, whatsapp_1.sendMessage)(template, currentToken, currentPhoneNumberId);
     if (result.status === 200) {
         functions.logger.info("Notification sent!", data.customer.name);
     }
@@ -83,7 +100,7 @@ exports.generatePDF = functions.region(index_1.REGION).https.onCall(async (data,
          * Send whatsapp notification only if whatsapp exist
          */
         if (((_a = data.whatsapp) === null || _a === void 0 ? void 0 : _a.template) && ((_b = data.whatsapp) === null || _b === void 0 ? void 0 : _b.recipient)) {
-            await sendWhatsappNotification(data, url[0]);
+            await sendWhatsappNotification(data, url[0], requestedUser.business);
         }
         return { url: url[0] };
     }

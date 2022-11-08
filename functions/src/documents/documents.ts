@@ -2,6 +2,7 @@ import { getStorage } from 'firebase-admin/storage';
 import * as functions from 'firebase-functions';
 import { createInvoice } from 'pdf-documents';
 import * as uuid from 'uuid';
+import { getBusinessById } from '../business';
 import { getCurrentUserInfo, REGION } from '../index';
 import { getInvoiceTemplate, IInvoiceTemplateProps, sendMessage } from '../whatsapp';
 import { Invoice } from './Invoice';
@@ -9,12 +10,33 @@ const BUCKET_NAME = 'mobile-seller-documents';
 const LINK_DAYS_SIGNED = 604800;
 
 
-const sendWhatsappNotification = async (data: Invoice, url: string): Promise<void> => {
+const sendWhatsappNotification = async (data: Invoice, url: string, businessId:string): Promise<void> => {
 
-    if(!data.whatsapp?.template && !data.whatsapp?.recipient){
+    if(!data.whatsapp?.template || !data.whatsapp?.recipient){
+        functions.logger.warn("User data does not contain template name or recipient undefined");
         return ;
     }
     
+    // get business data
+     const businessData = await getBusinessById(businessId);
+     functions.logger.debug(businessData);
+    const whatsappConfig = businessData.config?.integrations?.find(f => f.provider === "whatsapp")
+
+    if(!whatsappConfig || whatsappConfig?.enabled === false){
+        functions.logger.warn("whatsappConfig undefined or is not enabled in configuration");
+        return;
+    }
+
+    const { token, phoneNumberId, devPhoneNumberId, devToken, isDevelopment } = whatsappConfig;
+
+    const currentToken = isDevelopment ? devToken : token;
+    const currentPhoneNumberId = isDevelopment ? devPhoneNumberId : phoneNumberId;
+        
+    if(!currentToken || !currentPhoneNumberId){
+        functions.logger.warn("currentToken or currentPhoneNumberId undefined", {currentToken, currentPhoneNumberId} );
+        return;
+    }
+
         const payload: IInvoiceTemplateProps = {
             template: data.whatsapp?.template,
             recipient: data.whatsapp?.recipient,
@@ -25,7 +47,7 @@ const sendWhatsappNotification = async (data: Invoice, url: string): Promise<voi
 
         const template = getInvoiceTemplate(payload);
 
-        const result = await sendMessage(template);
+        const result = await sendMessage(template, currentToken, currentPhoneNumberId);
         if(result.status === 200){
             functions.logger.info("Notification sent!", data.customer.name);
         }else{
@@ -71,7 +93,7 @@ export const generatePDF = functions.region(REGION).https.onCall(async (data: In
          */
 
          if(data.whatsapp?.template && data.whatsapp?.recipient){
-            await sendWhatsappNotification(data, url[0]);
+            await sendWhatsappNotification(data, url[0], requestedUser.business);
         }
 
         return { url:url[0] };

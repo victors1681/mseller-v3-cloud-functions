@@ -5,12 +5,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getInvoiceTemplate = exports.getTextMessageInput = exports.sendMessage = void 0;
 const axios_1 = __importDefault(require("axios"));
-const sendMessage = async (data) => {
+const sendMessage = async (data, token, phoneNumberId) => {
     const config = {
         method: 'post',
-        url: `https://graph.facebook.com/${process.env.VERSION}/${process.env.PHONE_NUMBER_ID}/messages`,
+        url: `https://graph.facebook.com/${process.env.VERSION}/${phoneNumberId}/messages`,
         headers: {
-            Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
         },
         data,
