@@ -1,4 +1,9 @@
+export interface Whatsapp {
+        recipient: string,
+        template: "quote" | "order" | "invoice"
+}
 export interface Invoice {
+    whatsapp?: Whatsapp,
     company: Company;
     customer: Customer;
     ncf: string;
@@ -32,6 +37,7 @@ export interface Customer {
     address: string;
     seller: string;
     email: string;
+    whatsapp: string;
 }
 
 export interface Item {
