@@ -6,14 +6,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getInvoiceTemplate = exports.getTextMessageInput = exports.sendMessage = void 0;
 const axios_1 = __importDefault(require("axios"));
 const sendMessage = async (data) => {
-    var config = {
+    const config = {
         method: 'post',
         url: `https://graph.facebook.com/${process.env.VERSION}/${process.env.PHONE_NUMBER_ID}/messages`,
         headers: {
             Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
             'Content-Type': 'application/json',
         },
-        data: data,
+        data,
     };
     return (0, axios_1.default)(config);
 };

@@ -1,6 +1,7 @@
 export interface Whatsapp {
-        recipient: string,
-        template: "quote" | "order" | "invoice"
+        recipient: string;
+        template: "quote" | "order" | "invoice";
+        fileName: string;
 }
 export interface Invoice {
     whatsapp?: Whatsapp,

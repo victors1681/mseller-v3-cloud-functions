@@ -1,10 +1,10 @@
-import * as functions from 'firebase-functions';
-import { getCurrentUserInfo, REGION } from '../index';
 import { getStorage } from 'firebase-admin/storage';
-import * as uuid from 'uuid';
+import * as functions from 'firebase-functions';
 import { createInvoice } from 'pdf-documents';
+import * as uuid from 'uuid';
+import { getCurrentUserInfo, REGION } from '../index';
+import { getInvoiceTemplate, IInvoiceTemplateProps, sendMessage } from '../whatsapp';
 import { Invoice } from './Invoice';
-import { sendMessage, getInvoiceTemplate, InvoiceTemplateProps } from '../whatsapp';
 const BUCKET_NAME = 'mobile-seller-documents';
 const LINK_DAYS_SIGNED = 604800;
 
@@ -15,11 +15,11 @@ const sendWhatsappNotification = async (data: Invoice, url: string): Promise<voi
         return ;
     }
     
-        const payload: InvoiceTemplateProps = {
+        const payload: IInvoiceTemplateProps = {
             template: data.whatsapp?.template,
             recipient: data.whatsapp?.recipient,
             pdfUrl: url,
-            fileName: 'Factura.pdf',
+            fileName: data.whatsapp?.fileName,
             sellerName: data.customer.seller,
         };
 
@@ -37,7 +37,8 @@ const sendWhatsappNotification = async (data: Invoice, url: string): Promise<voi
 /**
  * based on the user request it get the user who is requesting and get the business id associated
  */
-export const generatePDF = functions.region(REGION).https.onCall(async (data: Invoice, context) => {
+
+export const generatePDF = functions.region(REGION).https.onCall(async (data: Invoice, context): Promise<{url: string}>  => {
     try {
          functions.logger.info(data);
         const requestedUser = await getCurrentUserInfo(context);
@@ -58,7 +59,7 @@ export const generatePDF = functions.region(REGION).https.onCall(async (data: In
         const file = getStorage().bucket(BUCKET_NAME).file(path);
 
         await createInvoice(data, file);
-        //Create the invoice
+        // Create the invoice
         const url = await file.getSignedUrl({
             version: 'v4',
             action: 'read',
@@ -70,10 +71,10 @@ export const generatePDF = functions.region(REGION).https.onCall(async (data: In
          */
 
          if(data.whatsapp?.template && data.whatsapp?.recipient){
-            await sendWhatsappNotification(data, url.toString());
+            await sendWhatsappNotification(data, url[0]);
         }
 
-        return { url };
+        return { url:url[0] };
     } catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }

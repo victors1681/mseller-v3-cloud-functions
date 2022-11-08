@@ -1,6 +1,6 @@
 import * as functions from 'firebase-functions';
+import Mailjet from 'node-mailjet';
 import { getCurrentUserInfo, REGION } from '../index';
-const Mailjet = require('node-mailjet');
 
 const mailjet = new Mailjet({
     apiKey: 'f2e1937095ccad002389351bffd0533d',
@@ -71,16 +71,15 @@ const payload = {
 export const sendEmailTemplate = functions.region(REGION).https.onCall(async (data, context) => {
     try {
         console.log('datadata:', data);
-        return;
+        
         const requestedUser = await getCurrentUserInfo(context);
 
         if (!requestedUser.business) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
 
-        const request = mailjet.post('send', { version: 'v3.1' }).request(payload);
+        const result = await mailjet.post('send', { version: 'v3.1' }).request(payload);
 
-        const result = await request();
         return { result };
     } catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);

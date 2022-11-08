@@ -22,12 +22,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendEmailTemplate = void 0;
 const functions = __importStar(require("firebase-functions"));
+const node_mailjet_1 = __importDefault(require("node-mailjet"));
 const index_1 = require("../index");
-const Mailjet = require('node-mailjet');
-const mailjet = new Mailjet({
+const mailjet = new node_mailjet_1.default({
     apiKey: 'f2e1937095ccad002389351bffd0533d',
     apiSecret: '0f221d718c2ced5a933d91a89d7f03d6',
 });
@@ -94,13 +97,11 @@ const payload = {
 exports.sendEmailTemplate = functions.region(index_1.REGION).https.onCall(async (data, context) => {
     try {
         console.log('datadata:', data);
-        return;
         const requestedUser = await (0, index_1.getCurrentUserInfo)(context);
         if (!requestedUser.business) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
-        const request = mailjet.post('send', { version: 'v3.1' }).request(payload);
-        const result = await request();
+        const result = await mailjet.post('send', { version: 'v3.1' }).request(payload);
         return { result };
     }
     catch (error) {
