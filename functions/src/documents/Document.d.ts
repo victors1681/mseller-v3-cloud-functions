@@ -1,6 +1,8 @@
+export type DocumentType = 'quote' | 'order' | 'invoice' | 'receipt';
+
 export interface Whatsapp {
     recipient: string;
-    template: 'quote' | 'order' | 'invoice';
+    template: DocumentType;
     fileName: string;
 }
 export interface Invoice {
@@ -12,7 +14,7 @@ export interface Invoice {
     invoice: string;
     dueDay: string;
     issueDay: string;
-    documentType: string;
+    documentType: DocumentType;
     footerMsg: string;
     items: Item[];
     subtotal: number;
@@ -50,4 +52,37 @@ export interface Item {
     discount: number;
     tax: number;
     subtotal: number;
+}
+
+
+export interface Receipt{
+    whatsapp?: Whatsapp;
+        company: Company
+        customer: Customer
+        documentNo: string
+        dueDay: string
+        issueDay: string
+        documentType: DocumentType
+        paymentType: string
+        isFutureCheck: boolean
+        futureDate: string
+        bankName: string
+        referenceNo: string
+        footerMsg: string
+        items: ReceiptItem[]
+        note: string
+        documentTotal: number
+        discountTotal: number
+        totalCollected: number  
+}
+
+export interface ReceiptItem {
+    document: string
+    node: string
+    discount: number
+    tax: number
+    subtotal: number
+    total: number
+    date: string
+    collected: number
 }

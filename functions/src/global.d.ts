@@ -15,5 +15,6 @@ interface IContext {
 }
 
 declare module 'pdf-documents' {
-    const createInvoice: (data: Invoice, file: any) => Promise<string>;
+    const createDocument: (data: Invoice, file: any) => Promise<string>;
+    const createReceipt: (data: Invoice, file: any) => Promise<string>;
 }

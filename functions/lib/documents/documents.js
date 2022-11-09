@@ -73,14 +73,15 @@ const sendWhatsappNotification = async (data, url, businessId) => {
 /**
  * based on the user request it get the user who is requesting and get the business id associated
  */
-exports.generatePDF = functions.region(index_1.REGION).https.onCall(async (data, context) => {
+exports.generatePDF = functions.region(index_1.REGION).https.onCall(async (payload, context) => {
     var _a, _b;
     try {
-        functions.logger.info(data);
+        functions.logger.info(payload);
         const requestedUser = await (0, index_1.getCurrentUserInfo)(context);
         if (!requestedUser.business) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
+        const data = ["order", "invoice", "quote"].includes(payload.documentType) ? payload : payload;
         console.info('data', data.customer.name);
         const date = new Date();
         const day = date.getDate().toString().padStart(2, '0');
@@ -89,7 +90,12 @@ exports.generatePDF = functions.region(index_1.REGION).https.onCall(async (data,
         const fileName = uuid.v4();
         const path = `${requestedUser.business}/${year}-${month}/${day}/${fileName}.pdf`;
         const file = (0, storage_1.getStorage)().bucket(BUCKET_NAME).file(path);
-        await (0, pdf_documents_1.createInvoice)(data, file);
+        if (["order", "invoice", "quote"].includes(data.documentType)) {
+            await (0, pdf_documents_1.createDocument)(data, file);
+        }
+        else if (data.documentType === "receipt") {
+            await (0, pdf_documents_1.createReceipt)(data, file);
+        }
         // Create the invoice
         const url = await file.getSignedUrl({
             version: 'v4',

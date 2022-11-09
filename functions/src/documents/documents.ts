@@ -1,15 +1,16 @@
 import { getStorage } from 'firebase-admin/storage';
 import * as functions from 'firebase-functions';
-import { createInvoice } from 'pdf-documents';
+import { createDocument, createReceipt } from 'pdf-documents';
 import * as uuid from 'uuid';
 import { getBusinessById } from '../business';
 import { getCurrentUserInfo, REGION } from '../index';
 import { getInvoiceTemplate, IInvoiceTemplateProps, sendMessage } from '../whatsapp';
-import { Invoice } from './Invoice';
+import { Invoice, Receipt } from './Document.d';
+
 const BUCKET_NAME = 'mobile-seller-documents';
 const LINK_DAYS_SIGNED = 604800;
 
-const sendWhatsappNotification = async (data: Invoice, url: string, businessId: string): Promise<void> => {
+const sendWhatsappNotification = async (data: Invoice | Receipt, url: string, businessId: string): Promise<void> => {
     if (!data.whatsapp?.template || !data.whatsapp?.recipient) {
         functions.logger.warn('User data does not contain template name or recipient undefined');
         return;
@@ -58,15 +59,17 @@ const sendWhatsappNotification = async (data: Invoice, url: string, businessId: 
  */
 
 export const generatePDF = functions.region(REGION).https.onCall(
-    async (data: Invoice, context): Promise<{ url: string }> => {
+    async (payload: any, context): Promise<{ url: string }> => {
         try {
-            functions.logger.info(data);
+            functions.logger.info(payload);
             const requestedUser = await getCurrentUserInfo(context);
 
             if (!requestedUser.business) {
                 throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
             }
 
+            const data = ["order", "invoice", "quote"].includes(payload.documentType) ?  payload as Invoice : payload  as Receipt
+            
             console.info('data', data.customer.name);
 
             const date = new Date();
@@ -77,8 +80,12 @@ export const generatePDF = functions.region(REGION).https.onCall(
             const path = `${requestedUser.business}/${year}-${month}/${day}/${fileName}.pdf`;
 
             const file = getStorage().bucket(BUCKET_NAME).file(path);
-
-            await createInvoice(data, file);
+            
+            if(["order", "invoice", "quote"].includes(data.documentType)){
+                await createDocument(data, file);
+            }else if (data.documentType === "receipt"){
+                await createReceipt(data, file);
+            }
             // Create the invoice
             const url = await file.getSignedUrl({
                 version: 'v4',

@@ -30,7 +30,7 @@ const messageHelper_1 = require("./messageHelper");
 exports.whatsappWebhook = functions.region(index_1.REGION).https.onRequest(async (req, res) => {
     if (req.method.toLocaleLowerCase() === 'post') {
         console.log(JSON.stringify(req.body));
-        if (req.body) {
+        if (req.body.object) {
             if (req.body.entry &&
                 req.body.entry[0].changes &&
                 req.body.entry[0].changes[0] &&
@@ -38,7 +38,6 @@ exports.whatsappWebhook = functions.region(index_1.REGION).https.onRequest(async
                 req.body.entry[0].changes[0].value.messages[0]) {
                 try {
                     const phoneNumberId = req.body.entry[0].changes[0].value.metadata.phone_number_id;
-                    console.log('phoneNumberId', phoneNumberId);
                     const from = req.body.entry[0].changes[0].value.messages[0].from; // extract the phone number from the webhook payload
                     const msgBody = req.body.entry[0].changes[0].value.messages[0].text.body; // extract the message text from the webhook payload
                     const textMessage = (0, messageHelper_1.getTextMessageInput)({ recipient: from, text: 'Ack: ' + msgBody });
