@@ -6,6 +6,7 @@ export * from './chat';
 export * from './messaging';
 export * from './email';
 export * from './documents';
+export * from './whatsapp/webhook';
 
 const serviceAccount = firebaseAccountCredentials as admin.ServiceAccount;
 

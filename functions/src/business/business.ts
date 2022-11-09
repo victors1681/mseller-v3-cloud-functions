@@ -1,8 +1,8 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import { BUSINESS_COLLECTION } from '../index';
-import { IBusiness} from "./business.d"
- 
+import { IBusiness } from './business.d';
+
 /**
  * get business information from the ID
  * @param businessId
@@ -25,4 +25,3 @@ export const getBusinessById = async (businessId: string): Promise<IBusiness> =>
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 };
-      

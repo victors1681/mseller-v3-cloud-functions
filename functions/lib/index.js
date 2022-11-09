@@ -35,6 +35,7 @@ __exportStar(require("./chat"), exports);
 __exportStar(require("./messaging"), exports);
 __exportStar(require("./email"), exports);
 __exportStar(require("./documents"), exports);
+__exportStar(require("./whatsapp/webhook"), exports);
 const serviceAccount = firebaseAccountCredentials;
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),

@@ -71,7 +71,7 @@ const payload = {
 export const sendEmailTemplate = functions.region(REGION).https.onCall(async (data, context) => {
     try {
         console.log('datadata:', data);
-        
+
         const requestedUser = await getCurrentUserInfo(context);
 
         if (!requestedUser.business) {

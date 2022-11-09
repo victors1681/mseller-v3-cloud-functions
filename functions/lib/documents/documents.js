@@ -36,22 +36,22 @@ const LINK_DAYS_SIGNED = 604800;
 const sendWhatsappNotification = async (data, url, businessId) => {
     var _a, _b, _c, _d, _e, _f, _g;
     if (!((_a = data.whatsapp) === null || _a === void 0 ? void 0 : _a.template) || !((_b = data.whatsapp) === null || _b === void 0 ? void 0 : _b.recipient)) {
-        functions.logger.warn("User data does not contain template name or recipient undefined");
+        functions.logger.warn('User data does not contain template name or recipient undefined');
         return;
     }
     // get business data
     const businessData = await (0, business_1.getBusinessById)(businessId);
     functions.logger.debug(businessData);
-    const whatsappConfig = (_d = (_c = businessData.config) === null || _c === void 0 ? void 0 : _c.integrations) === null || _d === void 0 ? void 0 : _d.find(f => f.provider === "whatsapp");
+    const whatsappConfig = (_d = (_c = businessData.config) === null || _c === void 0 ? void 0 : _c.integrations) === null || _d === void 0 ? void 0 : _d.find((f) => f.provider === 'whatsapp');
     if (!whatsappConfig || (whatsappConfig === null || whatsappConfig === void 0 ? void 0 : whatsappConfig.enabled) === false) {
-        functions.logger.warn("whatsappConfig undefined or is not enabled in configuration");
+        functions.logger.warn('whatsappConfig undefined or is not enabled in configuration');
         return;
     }
     const { token, phoneNumberId, devPhoneNumberId, devToken, isDevelopment } = whatsappConfig;
     const currentToken = isDevelopment ? devToken : token;
     const currentPhoneNumberId = isDevelopment ? devPhoneNumberId : phoneNumberId;
     if (!currentToken || !currentPhoneNumberId) {
-        functions.logger.warn("currentToken or currentPhoneNumberId undefined", { currentToken, currentPhoneNumberId });
+        functions.logger.warn('currentToken or currentPhoneNumberId undefined', { currentToken, currentPhoneNumberId });
         return;
     }
     const payload = {
@@ -64,10 +64,10 @@ const sendWhatsappNotification = async (data, url, businessId) => {
     const template = (0, whatsapp_1.getInvoiceTemplate)(payload);
     const result = await (0, whatsapp_1.sendMessage)(template, currentToken, currentPhoneNumberId);
     if (result.status === 200) {
-        functions.logger.info("Notification sent!", data.customer.name);
+        functions.logger.info('Notification sent!', data.customer.name);
     }
     else {
-        functions.logger.error("Whatsapp notification could not be sent", result);
+        functions.logger.error('Whatsapp notification could not be sent', result);
     }
 };
 /**

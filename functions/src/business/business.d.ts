@@ -1,40 +1,40 @@
-type IntegrationProvider = "whatsapp"
+type IntegrationProvider = 'whatsapp';
 
 interface IIntegration {
-  provider?: IntegrationProvider,
-  enabled?: boolean,
-  isDevelopment?: boolean,
-  token?: string,
-  phoneNumberId?: string, 
-  devToken?: string,
-  devPhoneNumberId?: string
+    provider?: IntegrationProvider;
+    enabled?: boolean;
+    isDevelopment?: boolean;
+    token?: string;
+    phoneNumberId?: string;
+    devToken?: string;
+    devPhoneNumberId?: string;
 }
- 
+
 interface IMetadata {
-    [Key: string]: any
+    [Key: string]: any;
 }
 
 export interface IBusiness {
     businessId: string;
     address: {
-      city: string;
-      country: string;
-      street: string;
+        city: string;
+        country: string;
+        street: string;
     };
     config: {
-      sandboxPort: string;
-      sandboxUrl: string;
-      serverPort: string;
-      serverUrl: string;
-      testMode: boolean;
-      displayPriceWithTax: boolean;
-      allowPriceBelowMinimum: boolean;
-      orderEmailTemplateID: number;
-      paymentEmailTemplateID: number;
-      allowQuote: boolean;
-      trackingLocation: boolean;
-      metadata: Array<IMetadata>;
-      integrations?:  IIntegration[];
+        sandboxPort: string;
+        sandboxUrl: string;
+        serverPort: string;
+        serverUrl: string;
+        testMode: boolean;
+        displayPriceWithTax: boolean;
+        allowPriceBelowMinimum: boolean;
+        orderEmailTemplateID: number;
+        paymentEmailTemplateID: number;
+        allowQuote: boolean;
+        trackingLocation: boolean;
+        metadata: Array<IMetadata>;
+        integrations?: IIntegration[];
     };
     contact: string;
     contactPhone: string;
@@ -50,7 +50,5 @@ export interface IBusiness {
     status: boolean;
     website: string;
     logoUrl: string;
-    sellingPackaging:false;
-  }
-  
-  
+    sellingPackaging: false;
+}
