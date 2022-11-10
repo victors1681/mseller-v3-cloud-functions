@@ -5,7 +5,7 @@ const packageJSON = require('../../package.json');
 const httpTransportOptions = {
     host: 'http-intake.logs.datadoghq.com',
     path: `/api/v2/logs?dd-api-key=${process.env.DATADOG_API_KEY}&ddsource=nodejs&service=${packageJSON.name}`,
-    ssl: false,
+    ssl: true,
 };
 const logger = (0, winston_1.createLogger)({
     level: 'info',

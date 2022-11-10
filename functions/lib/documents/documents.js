@@ -98,6 +98,7 @@ const sendWhatsappNotification = async (data, url, businessId) => {
         const result = await (0, whatsapp_1.sendMessage)(template, currentToken, currentPhoneNumberId);
         if (result.status === 200) {
             functions.logger.info('Notification sent!', data.customer.name);
+            functions.logger.info('Notification sent! ' + data.customer.name);
         }
         else {
             functions.logger.error('Whatsapp notification could not be sent', result);
@@ -105,6 +106,7 @@ const sendWhatsappNotification = async (data, url, businessId) => {
     }
     catch (err) {
         functions.logger.error('Whatsapp notification could not be sent', err);
+        logger_1.default.error(err.message);
         throw new functions.https.HttpsError('cancelled', err.message);
     }
 };

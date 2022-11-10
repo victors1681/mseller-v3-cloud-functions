@@ -34,8 +34,8 @@ const uuid = __importStar(require("uuid"));
 const business_1 = require("../business");
 const index_1 = require("../index");
 const formats_1 = require("../util/formats");
-const whatsapp_1 = require("../whatsapp");
 const logger_1 = __importDefault(require("../util/logger"));
+const whatsapp_1 = require("../whatsapp");
 const BUCKET_NAME = 'mobile-seller-documents';
 const LINK_DAYS_SIGNED = 604800;
 const sendWhatsappNotification = async (data, url, businessId) => {
@@ -98,6 +98,7 @@ const sendWhatsappNotification = async (data, url, businessId) => {
         const result = await (0, whatsapp_1.sendMessage)(template, currentToken, currentPhoneNumberId);
         if (result.status === 200) {
             functions.logger.info('Notification sent!', data.customer.name);
+            functions.logger.info('Notification sent! ' + data.customer.name);
         }
         else {
             functions.logger.error('Whatsapp notification could not be sent', result);
@@ -105,6 +106,7 @@ const sendWhatsappNotification = async (data, url, businessId) => {
     }
     catch (err) {
         functions.logger.error('Whatsapp notification could not be sent', err);
+        logger_1.default.error(err.message);
         throw new functions.https.HttpsError('cancelled', err.message);
     }
 };
@@ -114,7 +116,6 @@ const sendWhatsappNotification = async (data, url, businessId) => {
 exports.generatePDF = functions.region(index_1.REGION).https.onCall(async (payload, context) => {
     var _a, _b;
     try {
-        logger_1.default.log(payload);
         functions.logger.info(payload);
         const requestedUser = await (0, index_1.getCurrentUserInfo)(context);
         if (!requestedUser.business) {
@@ -152,6 +153,7 @@ exports.generatePDF = functions.region(index_1.REGION).https.onCall(async (paylo
         return { url: url[0] };
     }
     catch (error) {
+        logger_1.default.error(error.message);
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });

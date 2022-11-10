@@ -1,5 +1,5 @@
 import { createLogger, format, transports } from 'winston';
-const packageJSON = require('../../package.json');
+import packageJSON  from  '../../package.json';
 
 const httpTransportOptions = {
     host: 'http-intake.logs.datadoghq.com',

@@ -7,7 +7,6 @@ import { getCurrentUserInfo, REGION } from '../index';
 import { formatCurrency } from '../util/formats';
 import { getDocumentTemplate, IBodyParameter, IInvoiceTemplateProps, sendMessage } from '../whatsapp';
 import { Document, Receipt } from './document.d';
-import logger from '../util/logger';
 
 const BUCKET_NAME = 'mobile-seller-documents';
 const LINK_DAYS_SIGNED = 604800;
@@ -79,13 +78,11 @@ const sendWhatsappNotification = async (data: any, url: string, businessId: stri
         const result = await sendMessage(template, currentToken, currentPhoneNumberId);
         if (result.status === 200) {
             functions.logger.info('Notification sent!', data.customer.name);
-            functions.logger.info('Notification sent! ' + data.customer.name);
         } else {
             functions.logger.error('Whatsapp notification could not be sent', result);
         }
     } catch (err) {
         functions.logger.error('Whatsapp notification could not be sent', err);
-        logger.error(err.message);
         throw new functions.https.HttpsError('cancelled', err.message);
     }
 };
@@ -141,7 +138,6 @@ export const generatePDF = functions.region(REGION).https.onCall(
 
             return { url: url[0] };
         } catch (error) {
-            logger.error(error.message);
             throw new functions.https.HttpsError('invalid-argument', error.message);
         }
     },
