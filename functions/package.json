@@ -1,10 +1,10 @@
 {
-  "name": "functions",
+  "name": "mseller-gcloud-functions",
   "scripts": {
     "lint": "tslint --project tsconfig.json --fix",
     "build": "tsc",
-    "dev": "npm run prettier-format && npm run build && firebase emulators:start --only functions",
-    "serve:all": "npm run prettier-format && npm run build && firebase emulators:start",
+    "dev": "npm run format && npm run build && firebase emulators:start --only functions",
+    "serve:all": "npm run format && npm run build && firebase emulators:start",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "npm run build &&  firebase deploy --only functions",

@@ -114,6 +114,7 @@ const sendWhatsappNotification = async (data, url, businessId) => {
 exports.generatePDF = functions.region(index_1.REGION).https.onCall(async (payload, context) => {
     var _a, _b;
     try {
+        logger_1.default.log(payload);
         functions.logger.info(payload);
         const requestedUser = await (0, index_1.getCurrentUserInfo)(context);
         if (!requestedUser.business) {
@@ -151,7 +152,6 @@ exports.generatePDF = functions.region(index_1.REGION).https.onCall(async (paylo
         return { url: url[0] };
     }
     catch (error) {
-        logger_1.default.error(error.message);
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });
