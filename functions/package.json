@@ -10,7 +10,7 @@
     "deploy": "npm run build &&  firebase deploy --only functions",
     "logs": "firebase functions:log",
     "tslint-check": "tslint-config-prettier-check ./tslint.json",
-    "prettier-format": "prettier --config .prettierrc.js 'src/**/*.ts' --write"
+    "format": "prettier --config .prettierrc.js 'src/**/*.ts' --write"
   },
   "engines": {
     "node": "14"
@@ -25,9 +25,10 @@
     "firebase-admin": "^11.0.1",
     "firebase-functions": "^3.24.0",
     "node-mailjet": "^5.1.1",
-    "pdf-documents": "^1.2.0",
+    "pdf-documents": "^1.2.2",
     "prettier": "^2.0.5",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "winston": "^3.8.2"
   },
   "devDependencies": {
     "@types/uuid": "^8.3.4",

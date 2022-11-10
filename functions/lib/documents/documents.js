@@ -30,6 +30,7 @@ const pdf_documents_1 = require("pdf-documents");
 const uuid = __importStar(require("uuid"));
 const business_1 = require("../business");
 const index_1 = require("../index");
+const formats_1 = require("../util/formats");
 const whatsapp_1 = require("../whatsapp");
 const BUCKET_NAME = 'mobile-seller-documents';
 const LINK_DAYS_SIGNED = 604800;
@@ -54,20 +55,53 @@ const sendWhatsappNotification = async (data, url, businessId) => {
         functions.logger.warn('currentToken or currentPhoneNumberId undefined', { currentToken, currentPhoneNumberId });
         return;
     }
+    const parameters = [
+        {
+            type: 'text',
+            text: data.customer.name.toLowerCase(),
+        },
+        {
+            type: 'text',
+            text: data.documentNo,
+        },
+        data.documentType === 'invoice' && {
+            // the the amount variable
+            type: 'text',
+            text: (0, formats_1.formatCurrency)(data === null || data === void 0 ? void 0 : data.total, data),
+        },
+        data.documentType === 'receipt' && {
+            type: 'text',
+            text: (0, formats_1.formatCurrency)(data === null || data === void 0 ? void 0 : data.totalCollected, data),
+        },
+        {
+            type: 'text',
+            text: data.customer.seller,
+        },
+        {
+            type: 'text',
+            text: data.customer.sellerPhone,
+        },
+    ].filter((f) => f);
     const payload = {
         template: (_e = data.whatsapp) === null || _e === void 0 ? void 0 : _e.template,
         recipient: (_f = data.whatsapp) === null || _f === void 0 ? void 0 : _f.recipient,
         pdfUrl: url,
         fileName: (_g = data.whatsapp) === null || _g === void 0 ? void 0 : _g.fileName,
-        sellerName: data.customer.seller,
+        parameters,
     };
-    const template = (0, whatsapp_1.getInvoiceTemplate)(payload);
-    const result = await (0, whatsapp_1.sendMessage)(template, currentToken, currentPhoneNumberId);
-    if (result.status === 200) {
-        functions.logger.info('Notification sent!', data.customer.name);
+    const template = (0, whatsapp_1.getDocumentTemplate)(payload);
+    try {
+        const result = await (0, whatsapp_1.sendMessage)(template, currentToken, currentPhoneNumberId);
+        if (result.status === 200) {
+            functions.logger.info('Notification sent!', data.customer.name);
+        }
+        else {
+            functions.logger.error('Whatsapp notification could not be sent', result);
+        }
     }
-    else {
-        functions.logger.error('Whatsapp notification could not be sent', result);
+    catch (err) {
+        functions.logger.error('Whatsapp notification could not be sent', err);
+        throw new functions.https.HttpsError('cancelled', err.message);
     }
 };
 /**
@@ -81,7 +115,9 @@ exports.generatePDF = functions.region(index_1.REGION).https.onCall(async (paylo
         if (!requestedUser.business) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
-        const data = ["order", "invoice", "quote"].includes(payload.documentType) ? payload : payload;
+        const data = ['order', 'invoice', 'quote'].includes(payload.documentType)
+            ? payload
+            : payload;
         console.info('data', data.customer.name);
         const date = new Date();
         const day = date.getDate().toString().padStart(2, '0');
@@ -90,10 +126,10 @@ exports.generatePDF = functions.region(index_1.REGION).https.onCall(async (paylo
         const fileName = uuid.v4();
         const path = `${requestedUser.business}/${year}-${month}/${day}/${fileName}.pdf`;
         const file = (0, storage_1.getStorage)().bucket(BUCKET_NAME).file(path);
-        if (["order", "invoice", "quote"].includes(data.documentType)) {
+        if (['order', 'invoice', 'quote'].includes(data.documentType)) {
             await (0, pdf_documents_1.createDocument)(data, file);
         }
-        else if (data.documentType === "receipt") {
+        else if (data.documentType === 'receipt') {
             await (0, pdf_documents_1.createReceipt)(data, file);
         }
         // Create the invoice

@@ -4,18 +4,18 @@ import { createDocument, createReceipt } from 'pdf-documents';
 import * as uuid from 'uuid';
 import { getBusinessById } from '../business';
 import { getCurrentUserInfo, REGION } from '../index';
-import { getInvoiceTemplate, IInvoiceTemplateProps, sendMessage } from '../whatsapp';
-import { Invoice, Receipt } from './Document.d';
+import { formatCurrency } from '../util/formats';
+import { getDocumentTemplate, IBodyParameter, IInvoiceTemplateProps, sendMessage } from '../whatsapp';
+import { Document, Receipt } from './document.d';
 
 const BUCKET_NAME = 'mobile-seller-documents';
 const LINK_DAYS_SIGNED = 604800;
 
-const sendWhatsappNotification = async (data: Invoice | Receipt, url: string, businessId: string): Promise<void> => {
+const sendWhatsappNotification = async (data: any, url: string, businessId: string): Promise<void> => {
     if (!data.whatsapp?.template || !data.whatsapp?.recipient) {
         functions.logger.warn('User data does not contain template name or recipient undefined');
         return;
     }
-
     // get business data
     const businessData = await getBusinessById(businessId);
     functions.logger.debug(businessData);
@@ -36,21 +36,54 @@ const sendWhatsappNotification = async (data: Invoice | Receipt, url: string, bu
         return;
     }
 
+    const parameters = [
+        {
+            type: 'text',
+            text: data.customer.name.toLowerCase(),
+        },
+        {
+            type: 'text',
+            text: data.documentNo,
+        },
+        data.documentType === 'invoice' && {
+            // the the amount variable
+            type: 'text',
+            text: formatCurrency(data?.total, data),
+        },
+        data.documentType === 'receipt' && {
+            type: 'text',
+            text: formatCurrency(data?.totalCollected, data),
+        },
+        {
+            type: 'text',
+            text: data.customer.seller,
+        },
+        {
+            type: 'text',
+            text: data.customer.sellerPhone,
+        },
+    ].filter((f) => f) as IBodyParameter[];
+
     const payload: IInvoiceTemplateProps = {
         template: data.whatsapp?.template,
         recipient: data.whatsapp?.recipient,
         pdfUrl: url,
         fileName: data.whatsapp?.fileName,
-        sellerName: data.customer.seller,
+        parameters,
     };
 
-    const template = getInvoiceTemplate(payload);
+    const template = getDocumentTemplate(payload);
 
-    const result = await sendMessage(template, currentToken, currentPhoneNumberId);
-    if (result.status === 200) {
-        functions.logger.info('Notification sent!', data.customer.name);
-    } else {
-        functions.logger.error('Whatsapp notification could not be sent', result);
+    try {
+        const result = await sendMessage(template, currentToken, currentPhoneNumberId);
+        if (result.status === 200) {
+            functions.logger.info('Notification sent!', data.customer.name);
+        } else {
+            functions.logger.error('Whatsapp notification could not be sent', result);
+        }
+    } catch (err) {
+        functions.logger.error('Whatsapp notification could not be sent', err);
+        throw new functions.https.HttpsError('cancelled', err.message);
     }
 };
 
@@ -68,8 +101,10 @@ export const generatePDF = functions.region(REGION).https.onCall(
                 throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
             }
 
-            const data = ["order", "invoice", "quote"].includes(payload.documentType) ?  payload as Invoice : payload  as Receipt
-            
+            const data = ['order', 'invoice', 'quote'].includes(payload.documentType)
+                ? (payload as Document)
+                : (payload as Receipt);
+
             console.info('data', data.customer.name);
 
             const date = new Date();
@@ -80,10 +115,10 @@ export const generatePDF = functions.region(REGION).https.onCall(
             const path = `${requestedUser.business}/${year}-${month}/${day}/${fileName}.pdf`;
 
             const file = getStorage().bucket(BUCKET_NAME).file(path);
-            
-            if(["order", "invoice", "quote"].includes(data.documentType)){
+
+            if (['order', 'invoice', 'quote'].includes(data.documentType)) {
                 await createDocument(data, file);
-            }else if (data.documentType === "receipt"){
+            } else if (data.documentType === 'receipt') {
                 await createReceipt(data, file);
             }
             // Create the invoice

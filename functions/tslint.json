@@ -29,6 +29,7 @@
     "no-empty": [true, "allow-empty-catch"],
 
     "no-floating-promises": true,
+    "keyword/type": false,
 
     "no-implicit-dependencies": true,
 

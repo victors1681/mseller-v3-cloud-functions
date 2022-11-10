@@ -32,9 +32,15 @@ export interface IInvoiceTemplateProps {
     recipient: string;
     pdfUrl: string;
     fileName: string;
-    sellerName: string;
+    parameters: IBodyParameter[];
 }
-export const getInvoiceTemplate = ({ template, recipient, pdfUrl, fileName, sellerName }: IInvoiceTemplateProps) => {
+
+export interface IBodyParameter {
+    type: 'text';
+    text: string;
+}
+
+export const getDocumentTemplate = ({ template, recipient, pdfUrl, fileName, parameters }: IInvoiceTemplateProps) => {
     return JSON.stringify({
         messaging_product: 'whatsapp',
         to: recipient,
@@ -59,12 +65,7 @@ export const getInvoiceTemplate = ({ template, recipient, pdfUrl, fileName, sell
                 },
                 {
                     type: 'body',
-                    parameters: [
-                        {
-                            type: 'text',
-                            text: sellerName,
-                        },
-                    ],
+                    parameters,
                 },
             ],
         },

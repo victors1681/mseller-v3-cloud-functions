@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getInvoiceTemplate = exports.getTextMessageInput = exports.sendMessage = void 0;
+exports.getDocumentTemplate = exports.getTextMessageInput = exports.sendMessage = void 0;
 const axios_1 = __importDefault(require("axios"));
 const sendMessage = async (data, token, phoneNumberId) => {
     const config = {
@@ -31,7 +31,7 @@ const getTextMessageInput = ({ recipient, text }) => {
     });
 };
 exports.getTextMessageInput = getTextMessageInput;
-const getInvoiceTemplate = ({ template, recipient, pdfUrl, fileName, sellerName }) => {
+const getDocumentTemplate = ({ template, recipient, pdfUrl, fileName, parameters }) => {
     return JSON.stringify({
         messaging_product: 'whatsapp',
         to: recipient,
@@ -56,16 +56,11 @@ const getInvoiceTemplate = ({ template, recipient, pdfUrl, fileName, sellerName 
                 },
                 {
                     type: 'body',
-                    parameters: [
-                        {
-                            type: 'text',
-                            text: sellerName,
-                        },
-                    ],
+                    parameters,
                 },
             ],
         },
     });
 };
-exports.getInvoiceTemplate = getInvoiceTemplate;
+exports.getDocumentTemplate = getDocumentTemplate;
 //# sourceMappingURL=messageHelper.js.map

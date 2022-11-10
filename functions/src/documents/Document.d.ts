@@ -5,13 +5,23 @@ export interface Whatsapp {
     template: DocumentType;
     fileName: string;
 }
-export interface Invoice {
+
+export interface Locale {
+    code: 'es-DO' | 'en-US';
+    currency: 'USD';
+}
+
+export interface Document {
+    locale?: Locale;
     whatsapp?: Whatsapp;
     company: Company;
     customer: Customer;
     ncf: string;
     ncfDescription: string;
-    invoice: string;
+    documentNo: string;
+    qrCodeUrl: string;
+    securityCode: string;
+    digitalSignatureDate: string;
     dueDay: string;
     issueDay: string;
     documentType: DocumentType;
@@ -41,6 +51,7 @@ export interface Customer {
     seller: string;
     email: string;
     whatsapp: string;
+    sellerPhone: string;
 }
 
 export interface Item {
@@ -54,35 +65,35 @@ export interface Item {
     subtotal: number;
 }
 
-
-export interface Receipt{
+export interface Receipt {
+    locale?: Locale;
     whatsapp?: Whatsapp;
-        company: Company
-        customer: Customer
-        documentNo: string
-        dueDay: string
-        issueDay: string
-        documentType: DocumentType
-        paymentType: string
-        isFutureCheck: boolean
-        futureDate: string
-        bankName: string
-        referenceNo: string
-        footerMsg: string
-        items: ReceiptItem[]
-        note: string
-        documentTotal: number
-        discountTotal: number
-        totalCollected: number  
+    company: Company;
+    customer: Customer;
+    documentNo: string;
+    dueDay: string;
+    issueDay: string;
+    documentType: DocumentType;
+    paymentType: string;
+    isFutureCheck: boolean;
+    futureDate: string;
+    bankName: string;
+    referenceNo: string;
+    footerMsg: string;
+    items: ReceiptItem[];
+    note: string;
+    documentTotal: number;
+    discountTotal: number;
+    totalCollected: number;
 }
 
 export interface ReceiptItem {
-    document: string
-    node: string
-    discount: number
-    tax: number
-    subtotal: number
-    total: number
-    date: string
-    collected: number
+    document: string;
+    node: string;
+    discount: number;
+    tax: number;
+    subtotal: number;
+    total: number;
+    date: string;
+    collected: number;
 }
