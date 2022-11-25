@@ -3,8 +3,8 @@ import * as functions from 'firebase-functions';
 import { createDocument, createReceipt } from 'pdf-documents';
 import * as uuid from 'uuid';
 import { getBusinessById } from '../business';
-import { getCurrentUserInfo, REGION } from '../index';
 import {sendGenericEmail} from "../email/email";
+import { getCurrentUserInfo, REGION } from '../index';
 import { formatCurrency } from '../util/formats';
 import { getDocumentTemplate, IBodyParameter, IInvoiceTemplateProps, sendMessage } from '../whatsapp';
 import { Document, Receipt } from './document.d';
@@ -139,9 +139,9 @@ export const generatePDF = functions.region(REGION).https.onCall(
                 console.log("Wont send whatsapp due to missing parameters", {sendByWhatsapp: data.metadata.sendByWhatsapp, template: data.whatsapp?.template, recipient: data.whatsapp?.recipient})
             }
 
-            //Send document by email
+            // Send document by email
             if(data.metadata.sendByEmail){
-                sendGenericEmail(data, url[0], requestedUser.business)
+                await sendGenericEmail(data, url[0], requestedUser.business)
             }
 
             return { url: url[0] };
