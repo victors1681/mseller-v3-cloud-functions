@@ -30,6 +30,7 @@ const pdf_documents_1 = require("pdf-documents");
 const uuid = __importStar(require("uuid"));
 const business_1 = require("../business");
 const index_1 = require("../index");
+const email_1 = require("../email/email");
 const formats_1 = require("../util/formats");
 const whatsapp_1 = require("../whatsapp");
 const BUCKET_NAME = 'mobile-seller-documents';
@@ -108,7 +109,7 @@ const sendWhatsappNotification = async (data, url, businessId) => {
  * based on the user request it get the user who is requesting and get the business id associated
  */
 exports.generatePDF = functions.region(index_1.REGION).https.onCall(async (payload, context) => {
-    var _a, _b;
+    var _a, _b, _c, _d;
     try {
         functions.logger.info(payload);
         const requestedUser = await (0, index_1.getCurrentUserInfo)(context);
@@ -118,7 +119,7 @@ exports.generatePDF = functions.region(index_1.REGION).https.onCall(async (paylo
         const data = ['order', 'invoice', 'quote'].includes(payload.documentType)
             ? payload
             : payload;
-        console.info('data', data.customer.name);
+        console.info('Trying to send pdf document to: ', data.customer.name);
         const date = new Date();
         const day = date.getDate().toString().padStart(2, '0');
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -141,8 +142,15 @@ exports.generatePDF = functions.region(index_1.REGION).https.onCall(async (paylo
         /**
          * Send whatsapp notification only if whatsapp exist
          */
-        if (((_a = data.whatsapp) === null || _a === void 0 ? void 0 : _a.template) && ((_b = data.whatsapp) === null || _b === void 0 ? void 0 : _b.recipient)) {
+        if (data.metadata.sendByWhatsapp && ((_a = data.whatsapp) === null || _a === void 0 ? void 0 : _a.template) && ((_b = data.whatsapp) === null || _b === void 0 ? void 0 : _b.recipient)) {
             await sendWhatsappNotification(data, url[0], requestedUser.business);
+        }
+        else {
+            console.log("Wont send whatsapp due to missing parameters", { sendByWhatsapp: data.metadata.sendByWhatsapp, template: (_c = data.whatsapp) === null || _c === void 0 ? void 0 : _c.template, recipient: (_d = data.whatsapp) === null || _d === void 0 ? void 0 : _d.recipient });
+        }
+        //Send document by email
+        if (data.metadata.sendByEmail) {
+            (0, email_1.sendGenericEmail)(data, url[0], requestedUser.business);
         }
         return { url: url[0] };
     }

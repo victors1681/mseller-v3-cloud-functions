@@ -1,8 +1,6 @@
-import * as functions from 'firebase-functions';
 import Mailjet from 'node-mailjet';
 import { getBusinessById } from '../business';
 import { Receipt, Document } from '../documents/document';
-import { getCurrentUserInfo, REGION } from '../index';
 
 const mailjet = new Mailjet({
     apiKey: process.env.MAILJET_API_KEY,
