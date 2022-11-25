@@ -2,14 +2,15 @@ import Mailjet from 'node-mailjet';
 import { getBusinessById } from '../business';
 import { Document, Receipt } from '../documents/document';
 
-const mailjet = new Mailjet({
-    apiKey: process.env.MAILJET_API_KEY,
-    apiSecret: process.env.MAILJET_API_SECRET,
-});
 
  
 export const sendGenericEmail = async (data: Document | Receipt, url: string, businessId: string): Promise<void> => {
  
+    const mailjet = new Mailjet({
+        apiKey: process.env.MAILJET_API_KEY,
+        apiSecret: process.env.MAILJET_API_SECRET,
+    });
+    
     const businessData = await getBusinessById(businessId);
     const TemplateID = businessData.config.orderEmailTemplateID
     const fromEmail = businessData.email;
