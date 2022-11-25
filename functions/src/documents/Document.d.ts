@@ -11,7 +11,13 @@ export interface Locale {
     currency: 'USD';
 }
 
+export interface Metadata {
+    sendByWhatsapp: Boolean;
+    sendByEmail: Boolean;
+}
+
 export interface Document {
+    metadata: Metadata;
     locale?: Locale;
     whatsapp?: Whatsapp;
     company: Company;
@@ -66,6 +72,7 @@ export interface Item {
 }
 
 export interface Receipt {
+    metadata: Metadata;
     locale?: Locale;
     whatsapp?: Whatsapp;
     company: Company;

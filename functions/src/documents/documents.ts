@@ -4,6 +4,7 @@ import { createDocument, createReceipt } from 'pdf-documents';
 import * as uuid from 'uuid';
 import { getBusinessById } from '../business';
 import { getCurrentUserInfo, REGION } from '../index';
+import {sendGenericEmail} from "../email/email";
 import { formatCurrency } from '../util/formats';
 import { getDocumentTemplate, IBodyParameter, IInvoiceTemplateProps, sendMessage } from '../whatsapp';
 import { Document, Receipt } from './document.d';
@@ -105,7 +106,7 @@ export const generatePDF = functions.region(REGION).https.onCall(
                 ? (payload as Document)
                 : (payload as Receipt);
 
-            console.info('data', data.customer.name);
+            console.info('Trying to send pdf document to: ', data.customer.name);
 
             const date = new Date();
             const day = date.getDate().toString().padStart(2, '0');
@@ -132,8 +133,15 @@ export const generatePDF = functions.region(REGION).https.onCall(
              * Send whatsapp notification only if whatsapp exist
              */
 
-            if (data.whatsapp?.template && data.whatsapp?.recipient) {
+            if (data.metadata.sendByWhatsapp && data.whatsapp?.template && data.whatsapp?.recipient) {
                 await sendWhatsappNotification(data, url[0], requestedUser.business);
+            }else {
+                console.log("Wont send whatsapp due to missing parameters", {sendByWhatsapp: data.metadata.sendByWhatsapp, template: data.whatsapp?.template, recipient: data.whatsapp?.recipient})
+            }
+
+            //Send document by email
+            if(data.metadata.sendByEmail){
+                sendGenericEmail(data, url[0], requestedUser.business)
             }
 
             return { url: url[0] };

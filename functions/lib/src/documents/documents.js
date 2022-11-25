@@ -22,9 +22,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generatePDF = void 0;
 const storage_1 = require("firebase-admin/storage");
@@ -34,7 +31,6 @@ const uuid = __importStar(require("uuid"));
 const business_1 = require("../business");
 const index_1 = require("../index");
 const formats_1 = require("../util/formats");
-const logger_1 = __importDefault(require("../util/logger"));
 const whatsapp_1 = require("../whatsapp");
 const BUCKET_NAME = 'mobile-seller-documents';
 const LINK_DAYS_SIGNED = 604800;
@@ -98,7 +94,6 @@ const sendWhatsappNotification = async (data, url, businessId) => {
         const result = await (0, whatsapp_1.sendMessage)(template, currentToken, currentPhoneNumberId);
         if (result.status === 200) {
             functions.logger.info('Notification sent!', data.customer.name);
-            functions.logger.info('Notification sent! ' + data.customer.name);
         }
         else {
             functions.logger.error('Whatsapp notification could not be sent', result);
@@ -106,7 +101,6 @@ const sendWhatsappNotification = async (data, url, businessId) => {
     }
     catch (err) {
         functions.logger.error('Whatsapp notification could not be sent', err);
-        logger_1.default.error(err.message);
         throw new functions.https.HttpsError('cancelled', err.message);
     }
 };
@@ -153,7 +147,6 @@ exports.generatePDF = functions.region(index_1.REGION).https.onCall(async (paylo
         return { url: url[0] };
     }
     catch (error) {
-        logger_1.default.error(error.message);
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 });
