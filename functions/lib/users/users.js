@@ -1,7 +1,11 @@
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -14,7 +18,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -34,20 +38,21 @@ var UserTypeEnum;
  * based on the context it will ge the info information coming from the request
  * @param context
  */
-exports.getCurrentUserInfo = async (context) => {
+const getCurrentUserInfo = async (context) => {
     var _a;
     const userId = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!userId) {
         throw new functions.https.HttpsError('invalid-argument', 'unable to find the user id');
     }
-    const userData = await exports.getUserById(userId);
+    const userData = await (0, exports.getUserById)(userId);
     return userData;
 };
+exports.getCurrentUserInfo = getCurrentUserInfo;
 /**
  * get user information from the ID
  * @param userId
  */
-exports.getUserById = async (userId) => {
+const getUserById = async (userId) => {
     try {
         const snapshot = await admin.firestore().collection(index_1.USER_COLLECTION).doc(userId).get();
         if (snapshot.exists) {
@@ -62,6 +67,7 @@ exports.getUserById = async (userId) => {
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 };
+exports.getUserById = getUserById;
 exports.addUser = functions.region(REGION).https.onCall(async (data, context) => {
     try {
         const { email, password, firstName, lastName, photoURL } = data;
@@ -69,7 +75,7 @@ exports.addUser = functions.region(REGION).https.onCall(async (data, context) =>
         if (!email && !password) {
             throw Error('email and password are mandatory');
         }
-        const requestedUser = await exports.getCurrentUserInfo(context);
+        const requestedUser = await (0, exports.getCurrentUserInfo)(context);
         if (!requestedUser) {
             throw Error('email and password are mandatory');
         }
@@ -134,21 +140,13 @@ exports.transferUser = functions.region(REGION).https.onCall(async (data, contex
         if (!sellerSource || !sellerTarget) {
             throw new functions.https.HttpsError('invalid-argument', 'seller Source and target needed to transfer code ' + sellerSource + ' ' + sellerTarget);
         }
-        const sellerSourceData = await exports.getUserById(sellerSource);
-        const sellerTargetData = await exports.getUserById(sellerTarget);
-        await admin
-            .firestore()
-            .collection(index_1.USER_COLLECTION)
-            .doc(sellerSource)
-            .update({
-            sellerCode: sellerTargetData.sellerCode
+        const sellerSourceData = await (0, exports.getUserById)(sellerSource);
+        const sellerTargetData = await (0, exports.getUserById)(sellerTarget);
+        await admin.firestore().collection(index_1.USER_COLLECTION).doc(sellerSource).update({
+            sellerCode: sellerTargetData.sellerCode,
         });
-        await admin
-            .firestore()
-            .collection(index_1.USER_COLLECTION)
-            .doc(sellerTarget)
-            .update({
-            sellerCode: sellerSourceData.sellerCode
+        await admin.firestore().collection(index_1.USER_COLLECTION).doc(sellerTarget).update({
+            sellerCode: sellerSourceData.sellerCode,
         });
         return { result: 'Seller Transferer' };
     }
@@ -208,7 +206,7 @@ exports.userById = functions.region(REGION).https.onCall(async (userId, context)
  */
 exports.getUsersRelated = functions.region(REGION).https.onCall(async (data, context) => {
     try {
-        const requestedUser = await exports.getCurrentUserInfo(context);
+        const requestedUser = await (0, exports.getCurrentUserInfo)(context);
         if (!requestedUser.business) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }

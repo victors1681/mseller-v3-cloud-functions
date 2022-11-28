@@ -1,7 +1,11 @@
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -14,7 +18,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -57,12 +61,12 @@ exports.sendNotificationToUserById = functions.region(REGION).https.onCall(async
             console.error('target userId is missing or payload');
             throw new functions.https.HttpsError('invalid-argument', 'target userId is missing or payload');
         }
-        const userToken = await helpers_1.getTokenByUserId(targetUserId);
+        const userToken = await (0, helpers_1.getTokenByUserId)(targetUserId);
         if (!userToken) {
             console.error('user FCM token not found');
             return false;
         }
-        return await helpers_1.sendUserNotification(targetUserId, payload);
+        return await (0, helpers_1.sendUserNotification)(targetUserId, payload);
     }
     catch (error) {
         console.error(error.message);
@@ -72,7 +76,7 @@ exports.sendNotificationToUserById = functions.region(REGION).https.onCall(async
 exports.sendSimpleNotificationToUserById = functions.region(REGION).https.onCall(async (data, context) => {
     try {
         if (data.targetUserId) {
-            const requestedUser = await users_1.getCurrentUserInfo(context);
+            const requestedUser = await (0, users_1.getCurrentUserInfo)(context);
             const payload = {
                 notification: {
                     title: data.title,
@@ -80,22 +84,22 @@ exports.sendSimpleNotificationToUserById = functions.region(REGION).https.onCall
                 },
                 data: {
                     senderId: requestedUser.userId,
-                    senderImageUrl: requestedUser.photoURL ? requestedUser.photoURL : "",
-                    type: "info",
-                    urgent: data.urgent ? data.urgent : "0",
+                    senderImageUrl: requestedUser.photoURL ? requestedUser.photoURL : '',
+                    type: 'info',
+                    urgent: data.urgent ? data.urgent : '0',
                     senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
-                    time: new Date().toISOString()
+                    time: new Date().toISOString(),
                 },
                 apns: {
                     payload: {
                         aps: {
                             badge: 1,
-                            'content-available': 1
+                            'content-available': 1,
                         },
                     },
                 },
             };
-            await helpers_1.sendNotificationToUserByIdLocal({ targetUserId: data.targetUserId, payload });
+            await (0, helpers_1.sendNotificationToUserByIdLocal)({ targetUserId: data.targetUserId, payload });
             return true;
         }
         else {
@@ -113,28 +117,28 @@ exports.sendSimpleNotificationToUserById = functions.region(REGION).https.onCall
  */
 exports.notifyAllUsers = functions.region(REGION).https.onCall(async (data, context) => {
     try {
-        const requestedUser = await users_1.getCurrentUserInfo(context);
-        // use topic as business id to notify all subscribers 
+        const requestedUser = await (0, users_1.getCurrentUserInfo)(context);
+        // use topic as business id to notify all subscribers
         const topic = requestedUser.business;
         const message = {
             notification: Object.assign({}, data),
             data: {
                 senderId: requestedUser.userId,
-                senderImageUrl: requestedUser.photoURL ? requestedUser.photoURL : "",
-                type: "info",
-                urgent: data.urgent ? data.urgent : "0",
+                senderImageUrl: requestedUser.photoURL ? requestedUser.photoURL : '',
+                type: 'info',
+                urgent: data.urgent ? data.urgent : '0',
                 senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
-                time: new Date().toISOString()
+                time: new Date().toISOString(),
             },
             apns: {
                 payload: {
                     aps: {
                         badge: 1,
-                        "content-available": 1
+                        'content-available': 1,
                     },
                 },
             },
-            topic
+            topic,
         };
         // Send a message to devices subscribed to the provided topic.
         const response = await admin.messaging().send(message);

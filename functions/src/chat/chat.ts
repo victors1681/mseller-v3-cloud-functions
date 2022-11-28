@@ -393,7 +393,7 @@ export const saveNewMessage = functions.region(REGION).https.onCall(
                             conversationId,
                             senderId: requestedUser.userId,
                             senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
-                            time: new Date().toISOString()
+                            time: new Date().toISOString(),
                         },
                         apns: {
                             payload: {

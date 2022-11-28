@@ -1,7 +1,11 @@
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -14,7 +18,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -39,7 +43,7 @@ const REGION = 'us-east1';
 exports.getConversations = functions.region(REGION).https.onCall(async (data, context) => {
     var e_1, _a;
     try {
-        const requestedUser = await users_1.getCurrentUserInfo(context);
+        const requestedUser = await (0, users_1.getCurrentUserInfo)(context);
         if (!requestedUser.business) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
@@ -82,8 +86,8 @@ exports.getConversations = functions.region(REGION).https.onCall(async (data, co
  */
 exports.newConversation = functions.region(REGION).https.onCall(async (targetUser, context) => {
     try {
-        const requestedUser = await users_1.getCurrentUserInfo(context);
-        const targetUserInfo = await users_1.getUserById(targetUser);
+        const requestedUser = await (0, users_1.getCurrentUserInfo)(context);
+        const targetUserInfo = await (0, users_1.getUserById)(targetUser);
         if (!requestedUser.business) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
@@ -168,7 +172,7 @@ exports.newConversation = functions.region(REGION).https.onCall(async (targetUse
 });
 exports.getMessages = functions.region(REGION).https.onCall(async (conversationId, context) => {
     try {
-        const requestedUser = await users_1.getCurrentUserInfo(context);
+        const requestedUser = await (0, users_1.getCurrentUserInfo)(context);
         if (!requestedUser.business) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
@@ -196,8 +200,8 @@ const getConversationInfo = async (doc) => {
         const userId = doc.id;
         const conversationId = doc.data().conversationId;
         const unseenCount = doc.data().unseenCount;
-        const userInfo = await users_1.getUserById(userId);
-        const conversationInfo = await exports.getConversationById(conversationId, userInfo.business);
+        const userInfo = await (0, users_1.getUserById)(userId);
+        const conversationInfo = await (0, exports.getConversationById)(conversationId, userInfo.business);
         return {
             user: userInfo,
             conversationId,
@@ -214,7 +218,7 @@ const getConversationInfo = async (doc) => {
  * get user information from the ID
  * @param userId
  */
-exports.getConversationById = async (conversationId, businessId) => {
+const getConversationById = async (conversationId, businessId) => {
     try {
         const snapshot = await admin
             .firestore()
@@ -233,6 +237,7 @@ exports.getConversationById = async (conversationId, businessId) => {
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 };
+exports.getConversationById = getConversationById;
 var MessageStatus;
 (function (MessageStatus) {
     MessageStatus["sent"] = "sent";
@@ -241,7 +246,7 @@ var MessageStatus;
 exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, context) => {
     var e_2, _a;
     try {
-        const requestedUser = await users_1.getCurrentUserInfo(context);
+        const requestedUser = await (0, users_1.getCurrentUserInfo)(context);
         const { content, conversationId, url, targetUser } = data;
         if (!requestedUser.business && conversationId) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated, content, and conversationId');
@@ -344,7 +349,7 @@ exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, cont
                         conversationId,
                         senderId: requestedUser.userId,
                         senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
-                        time: new Date().toISOString()
+                        time: new Date().toISOString(),
                     },
                     apns: {
                         payload: {
@@ -356,7 +361,7 @@ exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, cont
                 },
             };
             // Notify target user
-            await messaging_1.sendNotificationToUserByIdLocal(notificationData);
+            await (0, messaging_1.sendNotificationToUserByIdLocal)(notificationData);
         }
         return true;
     }
@@ -367,7 +372,7 @@ exports.saveNewMessage = functions.region(REGION).https.onCall(async (data, cont
 });
 exports.resetUnseenCounter = functions.region(REGION).https.onCall(async (data, context) => {
     try {
-        const requestedUser = await users_1.getCurrentUserInfo(context);
+        const requestedUser = await (0, users_1.getCurrentUserInfo)(context);
         const { targetUserId } = data;
         if (!requestedUser.business && targetUserId) {
             throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated or targetUserId');
@@ -391,7 +396,7 @@ exports.resetUnseenCounter = functions.region(REGION).https.onCall(async (data, 
 });
 exports.setMessageStatus = functions.region(REGION).https.onCall(async (data, context) => {
     try {
-        const requestedUser = await users_1.getCurrentUserInfo(context);
+        const requestedUser = await (0, users_1.getCurrentUserInfo)(context);
         const { messageId, status, conversationId } = data;
         if (!requestedUser.business && messageId && status && conversationId) {
             console.error(`Invalid parameters conversationId: ${conversationId} messageId: ${messageId} status: ${status}`);
