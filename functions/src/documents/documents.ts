@@ -51,7 +51,7 @@ const sendWhatsappNotification = async (data: any, url: string, businessId: stri
             type: 'text',
             text: formatCurrency(data?.total, data),
         },
-        data.documentType === 'receipt' && {
+        data.whatsapp?.template === 'receipt' && {
             type: 'text',
             text: formatCurrency(data?.totalCollected, data),
         },
