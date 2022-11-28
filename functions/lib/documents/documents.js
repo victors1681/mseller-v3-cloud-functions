@@ -36,7 +36,7 @@ const whatsapp_1 = require("../whatsapp");
 const BUCKET_NAME = 'mobile-seller-documents';
 const LINK_DAYS_SIGNED = 604800;
 const sendWhatsappNotification = async (data, url, businessId) => {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     if (!((_a = data.whatsapp) === null || _a === void 0 ? void 0 : _a.template) || !((_b = data.whatsapp) === null || _b === void 0 ? void 0 : _b.recipient)) {
         functions.logger.warn('User data does not contain template name or recipient undefined');
         return;
@@ -70,7 +70,7 @@ const sendWhatsappNotification = async (data, url, businessId) => {
             type: 'text',
             text: (0, formats_1.formatCurrency)(data === null || data === void 0 ? void 0 : data.total, data),
         },
-        data.documentType === 'receipt' && {
+        ((_e = data.whatsapp) === null || _e === void 0 ? void 0 : _e.template) === 'receipt' && {
             type: 'text',
             text: (0, formats_1.formatCurrency)(data === null || data === void 0 ? void 0 : data.totalCollected, data),
         },
@@ -84,10 +84,10 @@ const sendWhatsappNotification = async (data, url, businessId) => {
         },
     ].filter((f) => f);
     const payload = {
-        template: (_e = data.whatsapp) === null || _e === void 0 ? void 0 : _e.template,
-        recipient: (_f = data.whatsapp) === null || _f === void 0 ? void 0 : _f.recipient,
+        template: (_f = data.whatsapp) === null || _f === void 0 ? void 0 : _f.template,
+        recipient: (_g = data.whatsapp) === null || _g === void 0 ? void 0 : _g.recipient,
         pdfUrl: url,
-        fileName: (_g = data.whatsapp) === null || _g === void 0 ? void 0 : _g.fileName,
+        fileName: (_h = data.whatsapp) === null || _h === void 0 ? void 0 : _h.fileName,
         parameters,
     };
     const template = (0, whatsapp_1.getDocumentTemplate)(payload);
