@@ -4,6 +4,7 @@ Handle new user creation and administration
 
 ## Installation
 
+Download the service account key from: Firebase project -> Service Accounts and save it with the name `serviceAccountKey.json` on `functions\src\serviceAccountKey.json`
  
 ```bash
 npm install -g firebase-tools
