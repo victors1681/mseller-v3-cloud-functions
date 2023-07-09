@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import { FCM_COLLECTION } from '../index';
-import { getCurrentUserInfo } from '../users';
+import { getCurrentUserInfo, getUserById } from '../users';
 import {
     getTokenByUserId,
     IMessagePayload,
@@ -9,6 +9,7 @@ import {
     sendNotificationToUserByIdLocal,
     sendUserNotification,
 } from './helpers';
+import { storeNotification } from './notifications';
 const REGION = 'us-east1';
 
 /**
@@ -71,7 +72,7 @@ interface ISimpleNotification {
     imageUrl?: string;
     senderImageUrl?: string;
     type: string;
-    urgent: boolean;
+    urgent: string;
 }
 
 export const sendSimpleNotificationToUserById = functions.region(REGION).https.onCall(
@@ -88,7 +89,7 @@ export const sendSimpleNotificationToUserById = functions.region(REGION).https.o
                         senderId: requestedUser.userId,
                         senderImageUrl: requestedUser.photoURL ? requestedUser.photoURL : '',
                         type: 'info',
-                        urgent: data.urgent ? data.urgent : '0',
+                        urgent: data.urgent ? '1' : '0',
                         senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
                         time: new Date().toISOString(),
                     },
@@ -102,6 +103,10 @@ export const sendSimpleNotificationToUserById = functions.region(REGION).https.o
                     },
                 };
                 await sendNotificationToUserByIdLocal({ targetUserId: data.targetUserId, payload });
+
+                // save notification if successfully sent
+                const targetUser = await getUserById(data.targetUserId)
+                await storeNotification( requestedUser, payload, targetUser)
 
                 return true;
             } else {
@@ -152,6 +157,11 @@ export const notifyAllUsers = functions.region(REGION).https.onCall(
 
             // Send a message to devices subscribed to the provided topic.
             const response = await admin.messaging().send(message);
+
+            // save notification if successfully sent
+            
+            await storeNotification(requestedUser, message, undefined, true)// broadcast
+
             console.log('Successfully sent message:', response);
 
             return true;

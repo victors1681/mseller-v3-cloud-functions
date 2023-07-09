@@ -17,6 +17,7 @@ admin.initializeApp({
 });
 
 export const CONVERSATION_COLLECTION = 'conversations';
+export const NOTIFICATION_COLLECTION = 'notifications';
 export const BUSINESS_COLLECTION = 'business';
 export const MESSAGES_COLLECTION = 'messages';
 export const USER_COLLECTION = 'users';

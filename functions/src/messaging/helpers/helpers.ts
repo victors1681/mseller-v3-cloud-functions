@@ -6,7 +6,14 @@ export interface IMessagePayload {
         title: string;
         body: string;
     };
-    data?: {};
+    data?: {
+        senderId?: string,
+        senderImageUrl?: string,
+        type?: string,
+        urgent?: string,
+        senderName?: string,
+        time?: string | number,
+    };
     apns?: {
         payload: {
             aps: {
@@ -19,7 +26,7 @@ export interface IMessagePayload {
 
 export const sendUserNotification = async (registrationToken: string, payload: IMessagePayload): Promise<boolean> => {
     try {
-        await admin.messaging().send({ token: registrationToken, ...payload });
+        await admin.messaging().send({ token: registrationToken, ...payload } as any);
 
         console.log('message sent');
         return true;
