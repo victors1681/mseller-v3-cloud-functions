@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import { FCM_COLLECTION } from '../index';
-import { getCurrentUserInfo, getUserById } from '../users';
+import { findUserByInternalCodeAndBusinessId, getCurrentUserInfo, getUserById } from '../users';
 import {
     getTokenByUserId,
     IMessagePayload,
@@ -75,6 +75,51 @@ interface ISimpleNotification {
     urgent: string;
 }
 
+interface INotificationByInternalCode extends ISimpleNotification {
+    code: string;
+    businessId: string;
+}
+
+export const sendSimpleNotificationByInternalCode = functions
+    .region(REGION)
+    .https.onCall(async (data: INotificationByInternalCode, context) => {
+        try {
+            const internalUser = await findUserByInternalCodeAndBusinessId(data.code, data.businessId);
+
+            if (internalUser) {
+                console.log(`Internal User: ${data.code} business ${data.businessId}`);
+
+                const payload: IMessagePayload = {
+                    notification: {
+                        title: data.title,
+                        body: data.body,
+                    },
+                    data: {
+                        senderId: internalUser.userId,
+                        senderImageUrl: '',
+                        type: 'info',
+                        urgent: data.urgent ? '1' : '0',
+                        senderName: `Mobile Seller`,
+                        time: new Date().toISOString(),
+                    },
+                    apns: {
+                        payload: {
+                            aps: {
+                                badge: 1,
+                                'content-available': 1,
+                            },
+                        },
+                    },
+                };
+
+                await sendNotificationToUserByIdLocal({ targetUserId: internalUser.userId, payload });
+            }
+        } catch (error) {
+            console.error(error.message);
+            throw new functions.https.HttpsError('invalid-argument', error.message);
+        }
+    });
+
 export const sendSimpleNotificationToUserById = functions.region(REGION).https.onCall(
     async (data: ISimpleNotification, context): Promise<boolean> => {
         try {
@@ -105,8 +150,8 @@ export const sendSimpleNotificationToUserById = functions.region(REGION).https.o
                 await sendNotificationToUserByIdLocal({ targetUserId: data.targetUserId, payload });
 
                 // save notification if successfully sent
-                const targetUser = await getUserById(data.targetUserId)
-                await storeNotification( requestedUser, payload, targetUser)
+                const targetUser = await getUserById(data.targetUserId);
+                await storeNotification(requestedUser, payload, targetUser);
 
                 return true;
             } else {
@@ -159,8 +204,8 @@ export const notifyAllUsers = functions.region(REGION).https.onCall(
             const response = await admin.messaging().send(message);
 
             // save notification if successfully sent
-            
-            await storeNotification(requestedUser, message, undefined, true)// broadcast
+
+            await storeNotification(requestedUser, message, undefined, true); // broadcast
 
             console.log('Successfully sent message:', response);
 

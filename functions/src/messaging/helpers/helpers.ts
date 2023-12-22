@@ -7,12 +7,12 @@ export interface IMessagePayload {
         body: string;
     };
     data?: {
-        senderId?: string,
-        senderImageUrl?: string,
-        type?: string,
-        urgent?: string,
-        senderName?: string,
-        time?: string | number,
+        senderId?: string;
+        senderImageUrl?: string;
+        type?: string;
+        urgent?: string;
+        senderName?: string;
+        time?: string | number;
     };
     apns?: {
         payload: {

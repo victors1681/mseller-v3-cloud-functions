@@ -27,6 +27,38 @@ export const getCurrentUserInfo = async (context: functions.https.CallableContex
 };
 
 /**
+ * find the user by internal code
+ * @param userId
+ * @returns
+ */
+export const findUserByInternalCodeAndBusinessId = async (
+    internalUserCode: string,
+    businessId: string,
+): Promise<IUser | null> => {
+    try {
+        // Query the users collection
+        const querySnapshot = await admin
+            .firestore()
+            .collection(USER_COLLECTION)
+            .where('sellerCode', '==', internalUserCode)
+            .where('businessId', '==', businessId)
+            .get();
+
+        // Check if a matching user was found
+        if (querySnapshot.size > 0) {
+            // Return the user data (assuming there's only one matching user)
+            const user = querySnapshot.docs[0].data();
+            return user as IUser;
+        } else {
+            // No matching user found
+            return null;
+        }
+    } catch (error) {
+        console.error('Error finding user:', error);
+        throw error;
+    }
+};
+/**
  * get user information from the ID
  * @param userId
  */
