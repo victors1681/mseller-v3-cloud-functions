@@ -87,7 +87,7 @@ export const sendSimpleNotificationByInternalCode = functions
             const internalUser = await findUserByInternalCodeAndBusinessId(data.code, data.businessId);
 
             if (internalUser) {
-                console.log(`Internal User: ${data.code} business ${data.businessId}`);
+                console.log(`Internal User: ${data.code} business ${data.businessId}, data: ${internalUser}`);
 
                 const payload: IMessagePayload = {
                     notification: {
