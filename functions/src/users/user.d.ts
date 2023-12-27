@@ -20,7 +20,7 @@ interface IUser {
     restoreIpad: boolean;
     sellerCode: string;
     testMode: boolean;
-    type: 'seller' | 'administrator' | 'superuser';
+    type: "seller" | "administrator" | "superuser" | "driver" | "office";
     userLevel: string;
     defaultClientByRoute: boolean;
     updateBankList: boolean;

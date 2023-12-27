@@ -8,6 +8,8 @@ export enum UserTypeEnum {
     seller = 'seller',
     administrator = 'administrator',
     superuser = 'superuser',
+    driver = 'driver',
+    office = 'office',
 }
 
 /**
@@ -109,7 +111,13 @@ export const addUser = functions.region(REGION).https.onCall(async (data: IUser,
 
         if (userRecord) {
             delete data.password;
-
+            await admin.auth().setCustomUserClaims(userRecord.uid, {
+                business: data.business,
+                type: data.type,
+                userLevel: data.userLevel, 
+                sellerCode: data.sellerCode,
+                warehouse: data.warehouse
+            });
             await admin
                 .firestore()
                 .collection(USER_COLLECTION)
@@ -142,6 +150,15 @@ export const updateUser = functions.region(REGION).https.onCall(async (data, con
         });
 
         delete data.password;
+
+        await admin.auth().setCustomUserClaims(userId, {
+            business: data.business,
+            type: data.type,
+            userLevel: data.userLevel,
+            sellerCode: data.sellerCode,
+            warehouse: data.warehouse
+        });
+
         await admin
             .firestore()
             .collection(USER_COLLECTION)
