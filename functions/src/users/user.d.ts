@@ -3,7 +3,7 @@ interface IUser {
     password?: string;
     email: string;
     photoURL: string;
-    business: string;
+    business?: IBusiness;
     businessId: string;
     editPrice: boolean;
     filterClients: boolean;
@@ -20,7 +20,7 @@ interface IUser {
     restoreIpad: boolean;
     sellerCode: string;
     testMode: boolean;
-    type: "seller" | "administrator" | "superuser" | "driver" | "office";
+    type: 'seller' | 'administrator' | 'superuser' | 'driver' | 'office';
     userLevel: string;
     defaultClientByRoute: boolean;
     updateBankList: boolean;

@@ -1,6 +1,6 @@
 export const REGION = 'us-east1';
 import * as admin from 'firebase-admin';
-// import * as firebaseAccountCredentials from './serviceAccountKey.json';
+import * as firebaseAccountCredentials from './serviceAccountKey.json';
 export * from './users';
 export * from './chat';
 export * from './messaging';
@@ -8,10 +8,10 @@ export * from './email';
 export * from './documents';
 export * from './whatsapp/webhook';
 
-// const serviceAccount = firebaseAccountCredentials as admin.ServiceAccount;
+const serviceAccount = firebaseAccountCredentials as admin.ServiceAccount;
 
 admin.initializeApp({
-    credential: admin.credential.applicationDefault(),// admin.credential.cert(serviceAccount),
+    credential: admin.credential.cert(serviceAccount),
     databaseURL: 'https://mobile-seller-v3.firebaseio.com',
     storageBucket: 'mobile-seller-v3.appspot.com',
 });

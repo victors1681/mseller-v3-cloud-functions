@@ -7,6 +7,7 @@
     "build": "tsc",
     "dev": "npm run format && npm run build && firebase emulators:start --only functions",
     "serve:all": "npm run format && npm run build && firebase emulators:start",
+    "serve:fn": "npm run format && npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "npm run build &&  firebase deploy --only functions",

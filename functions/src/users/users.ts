@@ -1,6 +1,6 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
-import { USER_COLLECTION } from '../index';
+import { BUSINESS_COLLECTION, USER_COLLECTION } from '../index';
 
 const REGION = 'us-east1';
 
@@ -65,12 +65,22 @@ export const findUserByInternalCodeAndBusinessId = async (
  * @param userId
  */
 
-export const getUserById = async (userId: string): Promise<IUser> => {
+export const getUserById = async (userId: string, withBusinessData: boolean = false): Promise<IUser> => {
     try {
         const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
 
         if (snapshot.exists) {
             const userData = snapshot.data();
+            if (withBusinessData && userData) {
+                const businessSnapshot = await admin
+                    .firestore()
+                    .collection(BUSINESS_COLLECTION)
+                    .doc(userData.businessId)
+                    .get();
+                if (businessSnapshot.exists) {
+                    userData.business = businessSnapshot.data();
+                }
+            }
             return { ...userData, userId } as any;
         } else {
             throw new functions.https.HttpsError(
@@ -114,9 +124,9 @@ export const addUser = functions.region(REGION).https.onCall(async (data: IUser,
             await admin.auth().setCustomUserClaims(userRecord.uid, {
                 business: data.business,
                 type: data.type,
-                userLevel: data.userLevel, 
+                userLevel: data.userLevel,
                 sellerCode: data.sellerCode,
-                warehouse: data.warehouse
+                warehouse: data.warehouse,
             });
             await admin
                 .firestore()
@@ -156,7 +166,7 @@ export const updateUser = functions.region(REGION).https.onCall(async (data, con
             type: data.type,
             userLevel: data.userLevel,
             sellerCode: data.sellerCode,
-            warehouse: data.warehouse
+            warehouse: data.warehouse,
         });
 
         await admin
@@ -276,6 +286,17 @@ export const getUsersRelated = functions.region(REGION).https.onCall(async (data
             .map((doc) => ({ userId: doc.id, ...doc.data() }));
 
         return usersWithId;
+    } catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
+
+export const getUserByAccessToken = functions.region(REGION).https.onCall(async (data, context) => {
+    try {
+        console.log(JSON.stringify(data.accessToken));
+        const user = await admin.auth().verifyIdToken(data.accessToken, true);
+        const userInfo = await getUserById(user.uid, true);
+        return userInfo;
     } catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
