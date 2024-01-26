@@ -9,11 +9,18 @@ export const sendGenericEmail = async (data: Document | Receipt, url: string, bu
     });
 
     const businessData = await getBusinessById(businessId);
+
+    console.debug('businessData', JSON.stringify(businessData));
+
     const TemplateID = businessData.config.orderEmailTemplateID;
     const fromEmail = businessData.email;
     const companyName = businessData.name;
     const customerName = data.customer.name;
     const customerEmail = data.customer.email;
+
+    if (!TemplateID) {
+        throw Error('TemplateID Mailjet is not defined');
+    }
 
     const values = {
         invoice: 'Factura',
@@ -30,6 +37,10 @@ export const sendGenericEmail = async (data: Document | Receipt, url: string, bu
         Messages: [
             {
                 From: {
+                    Email: 'transaccion@mseller.app', // verified default email
+                    Name: companyName,
+                },
+                ReplyTo: {
                     Email: fromEmail,
                     Name: companyName,
                 },
@@ -55,8 +66,13 @@ export const sendGenericEmail = async (data: Document | Receipt, url: string, bu
     };
 
     try {
+        console.info('Subject:', JSON.stringify(subject), ' Payload:', JSON.stringify(payload));
         const result = await mailjet.post('send', { version: 'v3.1' }).request(payload);
-        console.info(result);
+        if (result.response.status == 200) {
+            console.info('Success', JSON.stringify(result));
+        } else {
+            throw Error(JSON.stringify(result));
+        }
     } catch (err) {
         console.error(err);
     }
