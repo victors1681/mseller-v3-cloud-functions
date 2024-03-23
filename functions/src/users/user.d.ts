@@ -1,10 +1,9 @@
 interface IUser {
     userId: string;
-    password?: string;
+    password: string;
     email: string;
     photoURL: string;
-    business?: IBusiness;
-    businessId: string;
+    business: IBusiness;
     editPrice: boolean;
     filterClients: boolean;
     firstName: string;
@@ -27,4 +26,5 @@ interface IUser {
     warehouse: string;
     disabled: boolean;
     fcmToken: string;
+    cloudAccess: ICloudModules;
 }

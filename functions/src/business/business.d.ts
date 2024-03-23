@@ -10,11 +10,7 @@ interface IIntegration {
     devPhoneNumberId?: string;
 }
 
-interface IMetadata {
-    [Key: string]: any;
-}
-
-export interface IBusiness {
+interface IBusiness {
     businessId: string;
     address: {
         city: string;
@@ -26,14 +22,32 @@ export interface IBusiness {
         sandboxUrl: string;
         serverPort: string;
         serverUrl: string;
+
+        portalSandboxPort: string;
+        portalSandboxUrl: string;
+        portalServerPort: string;
+        portalServerUrl: string;
+
         testMode: boolean;
         displayPriceWithTax: boolean;
         allowPriceBelowMinimum: boolean;
+        allowOrderAboveCreditLimit: boolean;
+        allowLoadLastOrders: boolean;
+        allowLoadLastPrices: boolean;
+        allowConfirmProductStock: boolean;
+        allowCaptureCustomerGeolocation: boolean;
+        showProducInfoPanel: boolean;
+        captureTemporalDoc: boolean;
         orderEmailTemplateID: number;
         paymentEmailTemplateID: number;
+        defaultUnitSelectorBox: boolean;
         allowQuote: boolean;
+        v4: boolean;
+        promocion: boolean;
+        proximaOrden: boolean;
         trackingLocation: boolean;
-        metadata: Array<IMetadata>;
+        enableConfirmSelector: boolean;
+        metadata: Array<{ [key: string]: any }>;
         integrations?: IIntegration[];
     };
     contact: string;

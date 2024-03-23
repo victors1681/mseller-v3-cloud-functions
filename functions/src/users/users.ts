@@ -231,8 +231,9 @@ export const updatePasswordV2 = onCall(async ({ data: { userId, password }, auth
     }
 });
 
-export const deleteUserV2 = onCall(async ({ data: { userId }, auth }) => {
+export const deleteUserV2 = onCall(async ({ data, auth }) => {
     try {
+        const userId = data;
         if (!userId) {
             throw Error('userId is mandatory');
         }
