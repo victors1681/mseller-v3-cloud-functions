@@ -2,7 +2,7 @@ import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { BUSINESS_COLLECTION, USER_COLLECTION } from '../index';
-// import { logger } from 'firebase-functions/v2';
+import { logger } from 'firebase-functions/v2';
 
 const REGION = 'us-east1';
 
@@ -250,6 +250,8 @@ export const deleteUser = functions.region(REGION).https.onCall(async (userId, c
 
 export const userById = functions.region(REGION).https.onCall(async (userId, context) => {
     try {
+        logger.warn('DEPRECATED userById function, use userByIdV2');
+
         if (!userId) {
             throw Error('userId is mandatory');
         }
@@ -264,6 +266,26 @@ export const userById = functions.region(REGION).https.onCall(async (userId, con
         return { ...userData, disabled, email, photoURL, userId };
     } catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
+
+export const userByIdV2 = onCall(async ({ data, auth }) => {
+    try {
+        const userId = data;
+        if (!userId) {
+            throw new HttpsError('invalid-argument', 'User is is not defined in the request');
+        }
+
+        const { disabled, email, photoURL } = await admin.auth().getUser(userId);
+        const snapshot = await admin.firestore().collection(USER_COLLECTION).doc(userId).get();
+        const userData = snapshot.data();
+
+        if (userData && userData.empty) {
+            throw new HttpsError('not-found', 'user not found');
+        }
+        return { ...userData, disabled, email, photoURL, userId };
+    } catch (error) {
+        throw new HttpsError('invalid-argument', error.message);
     }
 });
 
