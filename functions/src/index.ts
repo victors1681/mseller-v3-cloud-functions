@@ -1,4 +1,8 @@
 export const REGION = 'us-east1';
+import { setGlobalOptions } from 'firebase-functions/v2';
+
+setGlobalOptions({ region: REGION });
+
 import * as admin from 'firebase-admin';
 import * as firebaseAccountCredentials from './serviceAccountKey.json';
 export * from './users';

@@ -1,6 +1,8 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
+import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { BUSINESS_COLLECTION, USER_COLLECTION } from '../index';
+// import { logger } from 'firebase-functions/v2';
 
 const REGION = 'us-east1';
 
@@ -291,13 +293,36 @@ export const getUsersRelated = functions.region(REGION).https.onCall(async (data
     }
 });
 
+/**
+ * Get user information by Access token, public resource
+ */
 export const getUserByAccessToken = functions.region(REGION).https.onCall(async (data, context) => {
     try {
-        console.log(JSON.stringify(data.accessToken));
         const user = await admin.auth().verifyIdToken(data.accessToken, true);
         const userInfo = await getUserById(user.uid, true);
         return userInfo;
     } catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
+
+/**
+ * get current user profile including business data
+ */
+
+export const getUserProfileV2 = onCall({ cors: '*' }, async ({ data, auth }) => {
+    try {
+        const userId = auth?.uid;
+
+        if (!userId) {
+            throw new HttpsError('failed-precondition', 'unable to find the user id, or not authenticated');
+        }
+
+        const userInfo = await getUserById(userId, true);
+        // logger.info("userInfo", userInfo);
+
+        return userInfo;
+    } catch (error) {
+        throw new HttpsError('invalid-argument', error.message);
     }
 });
