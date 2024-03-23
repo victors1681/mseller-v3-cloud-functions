@@ -1,8 +1,8 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
+import { logger } from 'firebase-functions/v2';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { BUSINESS_COLLECTION, USER_COLLECTION } from '../index';
-import { logger } from 'firebase-functions/v2';
 
 const REGION = 'us-east1';
 
@@ -95,7 +95,7 @@ export const getUserById = async (userId: string, withBusinessData: boolean = fa
     }
 };
 
-export const addUser = functions.region(REGION).https.onCall(async (data: IUser, context) => {
+export const addUserV2 = onCall(async ({ data, ...context }) => {
     try {
         const { email, password, firstName, lastName, photoURL } = data;
         const displayName = `${firstName} ${lastName}`;
@@ -140,17 +140,17 @@ export const addUser = functions.region(REGION).https.onCall(async (data: IUser,
         }
         return { result: 'user created', userId: userRecord.uid };
     } catch (error) {
-        throw new functions.https.HttpsError('invalid-argument', error.message);
+        throw new HttpsError('invalid-argument', error.message);
     }
 });
 
-export const updateUser = functions.region(REGION).https.onCall(async (data, context) => {
+export const updateUserV2 = onCall(async ({ data, auth }) => {
     try {
         const { userId, email, photoURL, firstName, lastName, disabled } = data;
         const displayName = `${firstName} ${lastName}`;
 
         if (!userId) {
-            throw new functions.https.HttpsError('invalid-argument', 'userId is mandatory userId: ' + userId);
+            throw new HttpsError('invalid-argument', 'userId is mandatory userId: ' + userId);
         }
 
         await admin.auth().updateUser(userId, {
@@ -179,14 +179,14 @@ export const updateUser = functions.region(REGION).https.onCall(async (data, con
 
         return { result: 'user updated', userId };
     } catch (error) {
-        throw new functions.https.HttpsError('invalid-argument', error.message);
+        throw new HttpsError('invalid-argument', error.message);
     }
 });
 
 /**
  * Transfer seller code between sellers
  */
-export const transferUser = functions.region(REGION).https.onCall(async (data, context) => {
+export const transferUserV2 = onCall(async ({ data, auth }) => {
     try {
         const { sellerSource, sellerTarget } = data;
 
@@ -214,7 +214,7 @@ export const transferUser = functions.region(REGION).https.onCall(async (data, c
     }
 });
 
-export const updatePassword = functions.region(REGION).https.onCall(async ({ userId, password }, context) => {
+export const updatePasswordV2 = onCall(async ({ data: { userId, password }, auth }) => {
     try {
         if (!userId && !password) {
             throw Error('userId and password are mandatory');
@@ -231,7 +231,7 @@ export const updatePassword = functions.region(REGION).https.onCall(async ({ use
     }
 });
 
-export const deleteUser = functions.region(REGION).https.onCall(async (userId, context) => {
+export const deleteUserV2 = onCall(async ({ data: { userId }, auth }) => {
     try {
         if (!userId) {
             throw Error('userId is mandatory');
