@@ -95,26 +95,31 @@ export const getUserById = async (userId: string, withBusinessData: boolean = fa
     }
 };
 
-export const addUserV2 = onCall(async ({ data, ...context }) => {
+export const addUserV2Common = async ({ data, ...context }: any) => {
     try {
         const { email, password, firstName, lastName, photoURL } = data;
         const displayName = `${firstName} ${lastName}`;
-
-        if (!email && !password) {
+        if (!email || !password) {
             throw Error('email and password are mandatory');
         }
 
-        const requestedUser = await getCurrentUserInfo(context);
-        if (!requestedUser) {
-            throw Error('email and password are mandatory');
-        }
-        if (data.type === UserTypeEnum.superuser && requestedUser.type !== UserTypeEnum.superuser) {
-            throw Error('you do not have the role to create a power user');
+        //bypass validation if the user is created from the portal
+        if (!data.creationFromPortal) {
+            const requestedUser = await getCurrentUserInfo(context);
+            if (!requestedUser) {
+                throw Error('email and password are mandatory');
+            }
+            if (data.type === UserTypeEnum.superuser && requestedUser.type !== UserTypeEnum.superuser) {
+                throw Error('you do not have the role to create a power user');
+            }
+        } else {
+            data.type === UserTypeEnum.administrator;
+            delete data.creationFromPortal;
         }
 
         const userRecord = await admin.auth().createUser({
             email,
-            emailVerified: true,
+            emailVerified: data.emailVerified !== undefined ? data.emailVerified : true, //default verified
             password,
             displayName,
             disabled: false,
@@ -123,6 +128,8 @@ export const addUserV2 = onCall(async ({ data, ...context }) => {
 
         if (userRecord) {
             delete data.password;
+            delete data.emailVerified;
+
             await admin.auth().setCustomUserClaims(userRecord.uid, {
                 business: data.business,
                 type: data.type,
@@ -134,15 +141,17 @@ export const addUserV2 = onCall(async ({ data, ...context }) => {
                 .firestore()
                 .collection(USER_COLLECTION)
                 .doc(userRecord.uid)
-                .set({ ...data, userId: userRecord.uid, business: data.business });
+                .set({ ...data, userId: userRecord.uid, business: data.business, businessId: data.business });
 
-            console.log('Successfully created new user:', userRecord.uid);
+            logger.log('Successfully created new user:', userRecord.uid);
         }
         return { result: 'user created', userId: userRecord.uid };
     } catch (error) {
         throw new HttpsError('invalid-argument', error.message);
     }
-});
+};
+
+export const addUserV2 = onCall(addUserV2Common);
 
 export const updateUserV2 = onCall(async ({ data, auth }) => {
     try {
@@ -231,7 +240,7 @@ export const updatePasswordV2 = onCall(async ({ data: { userId, password }, auth
     }
 });
 
-export const deleteUserV2 = onCall(async ({ data, auth }) => {
+export const deleteUserV2Common = async ({ data, auth }: any) => {
     try {
         const userId = data;
         if (!userId) {
@@ -247,7 +256,9 @@ export const deleteUserV2 = onCall(async ({ data, auth }) => {
     } catch (error) {
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
-});
+};
+
+export const deleteUserV2 = onCall(deleteUserV2Common);
 
 export const userById = functions.region(REGION).https.onCall(async (userId, context) => {
     try {

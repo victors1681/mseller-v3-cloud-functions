@@ -20,7 +20,7 @@ const sendWhatsappNotification = async (data: any, url: string, businessId: stri
     // get business data
     const businessData = await getBusinessById(businessId);
     functions.logger.debug(businessData);
-    const whatsappConfig = businessData.config?.integrations?.find((f) => f.provider === 'whatsapp');
+    const whatsappConfig = businessData.config?.integrations?.find((f: IIntegration) => f.provider === 'whatsapp');
 
     if (!whatsappConfig || whatsappConfig?.enabled === false) {
         functions.logger.warn('whatsappConfig undefined or is not enabled in configuration');
@@ -134,7 +134,7 @@ export const generatePDF = functions.region(REGION).https.onCall(
              */
 
             if (data.metadata.sendByWhatsapp && data.whatsapp?.template && data.whatsapp?.recipient) {
-                await sendWhatsappNotification(data, url[0], requestedUser.business);
+                await sendWhatsappNotification(data, url[0], requestedUser.business.businessId);
             } else {
                 console.log('Wont send whatsapp due to missing parameters', {
                     sendByWhatsapp: data.metadata.sendByWhatsapp,
@@ -145,7 +145,7 @@ export const generatePDF = functions.region(REGION).https.onCall(
 
             // Send document by email
             if (data.metadata.sendByEmail) {
-                await sendGenericEmail(data, url[0], requestedUser.business);
+                await sendGenericEmail(data, url[0], requestedUser.business.businessId);
             }
 
             return { url: url[0] };

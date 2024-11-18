@@ -78,7 +78,7 @@ export const storeNotification = async (
         await admin
             .firestore()
             .collection(BUSINESS_COLLECTION)
-            .doc(senderUser.businessId)
+            .doc(senderUser.business.businessId)
             .collection(NOTIFICATION_COLLECTION)
             .add(notiPayload);
     } catch (err) {

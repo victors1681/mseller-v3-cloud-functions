@@ -97,7 +97,7 @@ export const newConversation = functions.region(REGION).https.onCall(
                 const conversationFound = await admin
                     .firestore()
                     .collection(BUSINESS_COLLECTION)
-                    .doc(requestedUser.business)
+                    .doc(requestedUser.businessId ?? requestedUser.business.businessId)
                     .collection(CONVERSATION_COLLECTION)
                     .doc(cExistData.conversationId)
                     .get();
@@ -121,7 +121,7 @@ export const newConversation = functions.region(REGION).https.onCall(
             const conversationRef = await admin
                 .firestore()
                 .collection(BUSINESS_COLLECTION)
-                .doc(requestedUser.business)
+                .doc(requestedUser.businessId ?? requestedUser.business.businessId)
                 .collection(CONVERSATION_COLLECTION)
                 .add({
                     displayMessage: '',
@@ -194,7 +194,7 @@ export const getMessages = functions.region(REGION).https.onCall(
             const messages = await admin
                 .firestore()
                 .collection(BUSINESS_COLLECTION)
-                .doc(requestedUser.business)
+                .doc(requestedUser.businessId ?? requestedUser.business.businessId)
                 .collection(CONVERSATION_COLLECTION)
                 .doc(conversationId)
                 .collection(MESSAGES_COLLECTION)
@@ -218,7 +218,10 @@ const getConversationInfo = async (doc: any): Promise<IConversationResponse | un
         const conversationId = doc.data().conversationId;
         const unseenCount = doc.data().unseenCount;
         const userInfo = await getUserById(userId);
-        const conversationInfo = await getConversationById(conversationId, userInfo.business);
+        const conversationInfo = await getConversationById(
+            conversationId,
+            userInfo.businessId ?? userInfo.business.businessId,
+        );
 
         return {
             user: userInfo,
@@ -310,7 +313,7 @@ export const saveNewMessage = functions.region(REGION).https.onCall(
             await admin
                 .firestore()
                 .collection(BUSINESS_COLLECTION)
-                .doc(requestedUser.business)
+                .doc(requestedUser.businessId ?? requestedUser.business.businessId)
                 .collection(CONVERSATION_COLLECTION)
                 .doc(conversationId)
                 .collection(MESSAGES_COLLECTION)
@@ -320,7 +323,7 @@ export const saveNewMessage = functions.region(REGION).https.onCall(
             const records = await admin
                 .firestore()
                 .collection(BUSINESS_COLLECTION)
-                .doc(requestedUser.business)
+                .doc(requestedUser.businessId ?? requestedUser.business.businessId)
                 .collection(CONVERSATION_COLLECTION)
                 .doc(conversationId)
                 .get();
@@ -346,7 +349,7 @@ export const saveNewMessage = functions.region(REGION).https.onCall(
             await admin
                 .firestore()
                 .collection(BUSINESS_COLLECTION)
-                .doc(requestedUser.business)
+                .doc(requestedUser.businessId ?? requestedUser.business.businessId)
                 .collection(CONVERSATION_COLLECTION)
                 .doc(conversationId)
                 .update({
@@ -477,7 +480,7 @@ export const setMessageStatus = functions.region(REGION).https.onCall(
             await admin
                 .firestore()
                 .collection(BUSINESS_COLLECTION)
-                .doc(requestedUser.business)
+                .doc(requestedUser.businessId ?? requestedUser.business.businessId)
                 .collection(CONVERSATION_COLLECTION)
                 .doc(conversationId)
                 .collection(MESSAGES_COLLECTION)

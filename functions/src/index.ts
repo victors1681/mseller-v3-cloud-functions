@@ -6,6 +6,7 @@ setGlobalOptions({ region: REGION });
 import * as admin from 'firebase-admin';
 import * as firebaseAccountCredentials from './serviceAccountKey.json';
 export * from './users';
+export * from './business';
 export * from './chat';
 export * from './messaging';
 export * from './email';

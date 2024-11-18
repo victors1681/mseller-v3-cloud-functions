@@ -1,22 +1,18 @@
 {
-  "compilerOptions": { 
-    "module": "commonjs",
-    "noImplicitReturns": true,
-    "noUnusedLocals": true,
-    "outDir": "lib",
-    "sourceMap": true,
-    "strict": true,
-    "target": "es2017",
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "useUnknownInCatchVariables": false
-  }, 
-  "lib": [
-    "esnext",
-  ],
-  "compileOnSave": true,
-  "include": [
-    "./src/**/*"
-  ]
+    "compilerOptions": {
+        "module": "commonjs",
+        "noImplicitReturns": true,
+        "noUnusedLocals": true,
+        "outDir": "lib",
+        "sourceMap": true,
+        "strict": true,
+        "target": "es2017",
+        "resolveJsonModule": true,
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "useUnknownInCatchVariables": false
+    },
+    "lib": ["esnext"],
+    "compileOnSave": true,
+    "include": ["./src/**/*"]
 }

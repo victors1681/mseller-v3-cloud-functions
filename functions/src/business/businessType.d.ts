@@ -60,9 +60,11 @@ interface IBusiness {
     phone: string;
     rnc: string;
     sellerLicenses: number;
-    startingDate: Date;
+    startDate: string;
     status: boolean;
     website: string;
     logoUrl: string;
-    sellingPackaging: false;
+    sellingPackaging: boolean;
+    startDate?: string;
+    fromPortal?: boolean;
 }
