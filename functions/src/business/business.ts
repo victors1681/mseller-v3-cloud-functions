@@ -45,15 +45,34 @@ const isAccountExist = async (email: string) => {
 /**
  * This function will create a new business and a default user to onboard a new customer
  */
-export const addPortalBusiness = onCall(async ({ data, ...context }) => {
+export const addPortalBusiness = onCall({ cors: '*' }, async ({ data, ...context }) => {
     try {
+        const response = await fetch(`https://www.google.com/recaptcha/api/siteverify`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                secret: process.env.GOOGLE_RE_CAPTCHA || '',
+                response: data.reCaptchaToken,
+            }),
+        });
+
+        const captchaData = await response.json();
+
+        console.log('Response from Re Catcha', captchaData);
+        if (!captchaData.success || captchaData.score < 0.5) {
+            // Adjust score threshold as needed
+            throw new functions.https.HttpsError('failed-precondition', `reCatcha Invalid`);
+        }
+
         if (await isAccountExist(data.user_email)) {
             throw new functions.https.HttpsError('already-exists', `Email ${data.user_email} already exist`);
         }
         const currentDate = new Date().toLocaleDateString();
         const userFullName = `${data.user_first_name} ${data.user_last_name}`;
 
-        //Ensure all the data is consisten with the portal
+        //Ensure all the data is consistent with the portal
         const defaultBusinessData = {
             businessId: '',
             name: data.business_name,
