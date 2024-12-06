@@ -10,6 +10,7 @@ interface IIntegration {
     devPhoneNumberId?: string;
 }
 
+export type Tiers = 'basic' | 'standard' | 'enterprise';
 interface IBusiness {
     businessId: string;
     address: {
@@ -44,6 +45,7 @@ interface IBusiness {
         allowQuote: boolean;
         v4: boolean;
         promocion: boolean;
+        temporalOrder: boolean;
         proximaOrden: boolean;
         trackingLocation: boolean;
         enableConfirmSelector: boolean;
@@ -67,4 +69,8 @@ interface IBusiness {
     sellingPackaging: boolean;
     startDate?: string;
     fromPortal?: boolean;
+    stripeCustomerId?: string;
+    subscriptionId?: string;
+    subscriptionStatus?: string;
+    tier?: Tiers;
 }

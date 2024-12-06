@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import { logger } from 'firebase-functions/v2';
-import { HttpsError, onCall } from 'firebase-functions/v2/https';
+import { CallableRequest, HttpsError, onCall } from 'firebase-functions/v2/https';
 import { BUSINESS_COLLECTION, USER_COLLECTION } from '../index';
 
 const REGION = 'us-east1';
@@ -94,6 +94,7 @@ export const getUserById = async (userId: string, withBusinessData: boolean = fa
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 };
+export const validTiers = ['free', 'pro', 'enterprise'];
 
 export const addUserV2Common = async ({ data, ...context }: any) => {
     try {
@@ -102,6 +103,7 @@ export const addUserV2Common = async ({ data, ...context }: any) => {
         if (!email || !password) {
             throw Error('email and password are mandatory');
         }
+        const tier = data.userTier ? data.userTier : 'free';
 
         //bypass validation if the user is created from the portal
         if (!data.creationFromPortal) {
@@ -136,6 +138,7 @@ export const addUserV2Common = async ({ data, ...context }: any) => {
                 userLevel: data.userLevel,
                 sellerCode: data.sellerCode,
                 warehouse: data.warehouse,
+                tier,
             });
             await admin
                 .firestore()
@@ -172,12 +175,15 @@ export const updateUserV2 = onCall(async ({ data, auth }) => {
 
         delete data.password;
 
+        const tier = data.userTier ? data.userTier : 'free';
+
         await admin.auth().setCustomUserClaims(userId, {
             business: data.business,
             type: data.type,
             userLevel: data.userLevel,
             sellerCode: data.sellerCode,
             warehouse: data.warehouse,
+            tier,
         });
 
         await admin
@@ -223,11 +229,63 @@ export const transferUserV2 = onCall(async ({ data, auth }) => {
     }
 });
 
-export const updatePasswordV2 = onCall(async ({ data: { userId, password }, auth }) => {
+/**
+ * User need to bypass the security to be able to remove, update password
+ * @param request
+ * @param userId
+ * @returns
+ */
+const isValidPoweredUser = async <T>(request: CallableRequest<T>, userId: string) => {
+    if (!request?.auth?.uid) {
+        throw new functions.https.HttpsError('invalid-argument', `Request is not valid`);
+    }
+
+    const userRecord = await admin.auth().getUser(request.auth.uid);
+    const userRecordToUpdate = await admin.auth().getUser(userId);
+
+    const { business, type } = userRecord?.customClaims || {};
+
+    //Only super users can change password to any business account
+    if (business !== userRecordToUpdate?.customClaims?.business && type !== UserTypeEnum.superuser) {
+        throw new functions.https.HttpsError(
+            'permission-denied',
+            `Only super user can change password between business accounts. ${type}`,
+        );
+    }
+
+    if (type === undefined) {
+        throw new functions.https.HttpsError('permission-denied', `User Type is not defined ${type}`);
+    }
+
+    //Only Admin or super password can change password for another account
+    if (userId !== request?.auth?.uid && type !== UserTypeEnum.administrator && type !== UserTypeEnum.superuser) {
+        throw new functions.https.HttpsError(
+            'permission-denied',
+            `Only admin and super users can change password for another account. Type ${type}`,
+        );
+    }
+
+    return true;
+};
+
+interface UpdatePasswordV2Props {
+    userId: string;
+    password: string;
+}
+export const updatePasswordV2 = onCall(async (request: CallableRequest<UpdatePasswordV2Props>) => {
     try {
-        if (!userId && !password) {
-            throw Error('userId and password are mandatory');
+        const data = request.data;
+        const { userId, password } = data;
+
+        if (!request.auth) {
+            throw new functions.https.HttpsError('unauthenticated', `unauthenticated}`);
         }
+
+        if (!userId && !password) {
+            throw new functions.https.HttpsError('failed-precondition', `userId and password are mandatory`);
+        }
+
+        await isValidPoweredUser(request, userId);
 
         await admin.auth().updateUser(userId, {
             password,
@@ -240,12 +298,18 @@ export const updatePasswordV2 = onCall(async ({ data: { userId, password }, auth
     }
 });
 
-export const deleteUserV2Common = async ({ data, auth }: any) => {
+export const deleteUserV2Common = async (request: CallableRequest<string>) => {
     try {
-        const userId = data;
+        if (!request.auth) {
+            throw new functions.https.HttpsError('unauthenticated', `unauthenticated}`);
+        }
+
+        const userId = request.data;
         if (!userId) {
             throw Error('userId is mandatory');
         }
+
+        await isValidPoweredUser(request, userId);
 
         await admin.auth().deleteUser(userId);
         // remove table..
@@ -358,5 +422,67 @@ export const getUserProfileV2 = onCall({ cors: '*' }, async ({ data, auth }) => 
         return userInfo;
     } catch (error) {
         throw new HttpsError('invalid-argument', error.message);
+    }
+});
+
+interface TriggerForgotPasswordProps {
+    email: string;
+}
+export const triggerForgotPassword = onCall(async (request: CallableRequest<TriggerForgotPasswordProps>) => {
+    const { email } = request.data;
+
+    // Validate input
+    if (!email || typeof email !== 'string') {
+        throw new functions.https.HttpsError(
+            'invalid-argument',
+            'Email address is required and must be a valid string.',
+        );
+    }
+
+    try {
+        // Check if user exists
+        const user = await admin.auth().getUserByEmail(email);
+
+        // Generate password reset link if user exists
+        if (user) {
+            const resetLink = await admin.auth().generatePasswordResetLink(email);
+            console.log(`Password reset link generated for ${email}: ${resetLink}`);
+
+            const emailCollection = admin.firestore().collection('mail');
+            await emailCollection.add({
+                to: [email],
+                message: {
+                    subject: 'Restaurar contraseña - MSeller Cloud',
+                    html: `
+                        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                            <h2 style="color: #0056b3;">Restaurar contraseña</h2>
+                            <p>Hola,</p>
+                            <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en <strong>MSeller Cloud</strong>. Si no realizaste esta solicitud, puedes ignorar este correo.</p>
+                            <p>Para restablecer tu contraseña, haz clic en el siguiente enlace:</p>
+                            <p style="text-align: center; margin: 20px 0;">
+                                <a href="${resetLink}" style="display: inline-block; padding: 10px 20px; background-color: #0056b3; color: #fff; text-decoration: none; border-radius: 5px;">Restablecer contraseña</a>
+                            </p>
+                            <p>Si tienes problemas con el botón anterior, copia y pega el siguiente enlace en tu navegador:</p>
+                            <p style="word-wrap: break-word;">${resetLink}</p>
+                            <p>Gracias por usar <strong>MSeller Cloud</strong>.</p>
+                            <p style="color: #888; font-size: 12px;">Este es un mensaje automático. Por favor, no respondas a este correo.</p>
+                        </div>
+                    `,
+                },
+            });
+
+            return { success: true, message: 'Password reset link sent.' };
+        } else {
+            throw new functions.https.HttpsError('not-found', 'Email address not found. Please check and try again.');
+        }
+    } catch (error) {
+        console.error('Error generating password reset link:', error.message);
+
+        // Handle specific errors
+        if (error.code === 'auth/user-not-found') {
+            throw new functions.https.HttpsError('not-found', 'Email address not found. Please check and try again.');
+        } else {
+            throw new functions.https.HttpsError('internal', 'Failed to send password reset email. Please try again.');
+        }
     }
 });

@@ -12,6 +12,8 @@ export * from './messaging';
 export * from './email';
 export * from './documents';
 export * from './whatsapp/webhook';
+export * from './stripe';
+export * from './images';
 
 const serviceAccount = firebaseAccountCredentials as admin.ServiceAccount;
 
@@ -27,3 +29,5 @@ export const BUSINESS_COLLECTION = 'business';
 export const MESSAGES_COLLECTION = 'messages';
 export const USER_COLLECTION = 'users';
 export const FCM_COLLECTION = 'tokens';
+export const IMAGES_COLLECTION = 'images';
+export const DOCUMENTS_COLLECTION = 'documents';
