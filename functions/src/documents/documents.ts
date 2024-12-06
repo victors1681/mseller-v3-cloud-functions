@@ -1,16 +1,15 @@
-import { getStorage } from 'firebase-admin/storage';
 import * as functions from 'firebase-functions';
 import { createDocument, createReceipt } from 'pdf-documents';
 import * as uuid from 'uuid';
 import { getBusinessById } from '../business';
 import { sendGenericEmail } from '../email/email';
-import { getCurrentUserInfo, REGION } from '../index';
+import { BUSINESS_COLLECTION, DOCUMENTS_COLLECTION, IMAGES_COLLECTION, REGION } from '../index';
 import { formatCurrency } from '../util/formats';
 import { getDocumentTemplate, IBodyParameter, IInvoiceTemplateProps, sendMessage } from '../whatsapp';
 import { Document, Receipt } from './document.d';
-
-const BUCKET_NAME = 'mobile-seller-documents';
-const LINK_DAYS_SIGNED = 604800;
+import { IIntegration } from '../business/businessType';
+import * as admin from 'firebase-admin';
+// const BUCKET_NAME = 'mobile-seller-documents';
 
 const sendWhatsappNotification = async (data: any, url: string, businessId: string): Promise<void> => {
     if (!data.whatsapp?.template || !data.whatsapp?.recipient) {
@@ -95,12 +94,17 @@ const sendWhatsappNotification = async (data: any, url: string, businessId: stri
 export const generatePDF = functions.region(REGION).https.onCall(
     async (payload: any, context): Promise<{ url: string }> => {
         try {
-            functions.logger.info(payload);
-            const requestedUser = await getCurrentUserInfo(context);
-
-            if (!requestedUser.business) {
-                throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
+            if (!context.auth) {
+                throw new functions.https.HttpsError(
+                    'unauthenticated',
+                    'User must be authenticated to create a subscription.',
+                );
             }
+
+            functions.logger.info(payload);
+            const userRecord = await admin.auth().getUser(context.auth.uid);
+
+            const businessId = userRecord.customClaims?.business;
 
             const data = ['order', 'invoice', 'quote'].includes(payload.documentType)
                 ? (payload as Document)
@@ -113,9 +117,11 @@ export const generatePDF = functions.region(REGION).https.onCall(
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
             const year = date.getFullYear().toString();
             const fileName = uuid.v4();
-            const path = `${requestedUser.business}/${year}-${month}/${day}/${fileName}.pdf`;
+            const path = `${businessId}/documents/${year}-${month}/${day}/${fileName}.pdf`;
 
-            const file = getStorage().bucket(BUCKET_NAME).file(path);
+            const bucket = admin.storage().bucket();
+            const file = bucket.file(path);
+            // const file = getStorage().bucket(BUCKET_NAME).file(path);
 
             if (['order', 'invoice', 'quote'].includes(data.documentType)) {
                 await createDocument(data, file);
@@ -123,18 +129,15 @@ export const generatePDF = functions.region(REGION).https.onCall(
                 await createReceipt(data, file);
             }
             // Create the invoice
-            const url = await file.getSignedUrl({
-                version: 'v4',
-                action: 'read',
-                expires: Date.now() + LINK_DAYS_SIGNED,
-            });
+            await file.makePublic();
+            const url = file.publicUrl();
 
             /**
              * Send whatsapp notification only if whatsapp exist
              */
 
             if (data.metadata.sendByWhatsapp && data.whatsapp?.template && data.whatsapp?.recipient) {
-                await sendWhatsappNotification(data, url[0], requestedUser.business.businessId);
+                await sendWhatsappNotification(data, url[0], businessId);
             } else {
                 console.log('Wont send whatsapp due to missing parameters', {
                     sendByWhatsapp: data.metadata.sendByWhatsapp,
@@ -145,8 +148,21 @@ export const generatePDF = functions.region(REGION).https.onCall(
 
             // Send document by email
             if (data.metadata.sendByEmail) {
-                await sendGenericEmail(data, url[0], requestedUser.business.businessId);
+                await sendGenericEmail(data, url[0], businessId);
             }
+            const firestore = admin.firestore();
+
+            const doc = {
+                path,
+                fileName,
+                data,
+            };
+            const docsRef = firestore
+                .collection(BUSINESS_COLLECTION)
+                .doc(businessId)
+                .collection(DOCUMENTS_COLLECTION)
+                .doc(fileName);
+            await docsRef.set(doc);
 
             return { url: url[0] };
         } catch (error) {

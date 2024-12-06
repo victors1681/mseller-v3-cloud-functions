@@ -9,6 +9,7 @@ import {
     USER_COLLECTION,
 } from '../index';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
+import { IBusiness } from './businessType';
 
 /**
  * get business information from the ID
@@ -73,13 +74,12 @@ export const addPortalBusiness = onCall({ cors: '*' }, async ({ data, ...context
         const userFullName = `${data.user_first_name} ${data.user_last_name}`;
 
         //Ensure all the data is consistent with the portal
-        const defaultBusinessData = {
+        const defaultBusinessData: IBusiness = {
             businessId: '',
             name: data.business_name,
             rnc: '',
             phone: data.phone,
             email: data.user_email,
-            photoURL: '',
             logoUrl: '',
             footerMessage: '',
             footerReceipt: '',
@@ -110,7 +110,7 @@ export const addPortalBusiness = onCall({ cors: '*' }, async ({ data, ...context
                 allowLoadLastPrices: false,
                 allowConfirmProductStock: false,
                 allowCaptureCustomerGeolocation: true,
-                showProductInfoPanel: false,
+                showProducInfoPanel: false,
                 temporalOrder: true,
                 orderEmailTemplateID: 4387549,
                 paymentEmailTemplateID: 0,
@@ -118,7 +118,6 @@ export const addPortalBusiness = onCall({ cors: '*' }, async ({ data, ...context
                 trackingLocation: false,
                 integrations: [],
                 metadata: [],
-                showProducInfoPanel: false,
                 captureTemporalDoc: true,
                 defaultUnitSelectorBox: false,
                 v4: true,
@@ -130,6 +129,10 @@ export const addPortalBusiness = onCall({ cors: '*' }, async ({ data, ...context
             sellingPackaging: false,
             startDate: currentDate,
             fromPortal: true,
+            stripeCustomerId: '',
+            subscriptionId: '',
+            subscriptionStatus: '',
+            tier: 'basic',
         };
 
         const businessData: IBusiness = {
@@ -181,27 +184,51 @@ export const addPortalBusiness = onCall({ cors: '*' }, async ({ data, ...context
             // Step 3: Write to Firestore collection to trigger the email
             const emailCollection = admin.firestore().collection('mail');
 
+            // Verification Email to the User
             await emailCollection.add({
                 to: [data.user_email],
                 message: {
-                    subject: 'MSeller Verificación de su correo electrónico',
-                    html: `<p>Por favor verifique su correo electrónico haciendo click en el siguiente enlace:</p>
-                       <a href="${verificationLink}">${verificationLink}</a>`,
+                    subject: 'Verificación de correo electrónico - MSeller Cloud',
+                    html: `
+                        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                            <h2 style="color: #0056b3;">Verifica tu correo electrónico</h2>
+                            <p>Hola,</p>
+                            <p>Gracias por registrarte en <strong>MSeller Cloud</strong>. Por favor, verifica tu correo electrónico haciendo clic en el siguiente enlace:</p>
+                            <p style="text-align: center; margin: 20px 0;">
+                                <a href="${verificationLink}" style="display: inline-block; padding: 10px 20px; background-color: #0056b3; color: #fff; text-decoration: none; border-radius: 5px;">Verificar correo</a>
+                            </p>
+                            <p>Si el botón anterior no funciona, copia y pega el siguiente enlace en tu navegador:</p>
+                            <p style="word-wrap: break-word; color: #555;">${verificationLink}</p>
+                            <p>Gracias por usar <strong>MSeller Cloud</strong>.</p>
+                            <p style="color: #888; font-size: 12px;">Este es un mensaje automático. Por favor, no respondas a este correo.</p>
+                        </div>
+                    `,
                 },
             });
 
+            // Notification Email to Admins
             await emailCollection.add({
                 to: ['asdominicana@gmail.com', 'ltorres@itsoluclick.com', 'b.torres@itsoluclick.com'],
                 message: {
-                    subject: 'Nuevo usuario registrado en MSELLER Cloud',
-                    html: `<p>Este es un mensaje automático desde cloud.mseller.app nuevo usuario registrado:</p>
-                         <p>Nombre de la empresa: ${data.business_name}</p>
-                         <p>Teléfono: ${data.phone}</p>
-                         <p>País: ${data.country}</p>
-
-                         <h3>Datos del Usuario</h3>
-                         <p>Nombre: ${userFullName}</p>
-                         <p>Email: ${data.user_email}</p>`,
+                    subject: 'Nuevo Usuario Registrado - MSeller Cloud',
+                    html: `
+                        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                            <h2 style="color: #0056b3;">Nuevo Usuario Registrado</h2>
+                            <p>Este es un mensaje automático desde <strong>cloud.mseller.app</strong>. Un nuevo usuario se ha registrado:</p>
+                            <h3>Datos de la Empresa</h3>
+                            <ul style="list-style: none; padding: 0; color: #555;">
+                                <li><strong>Nombre de la empresa:</strong> ${data.business_name}</li>
+                                <li><strong>Teléfono:</strong> ${data.phone}</li>
+                                <li><strong>País:</strong> ${data.country}</li>
+                            </ul>
+                            <h3>Datos del Usuario</h3>
+                            <ul style="list-style: none; padding: 0; color: #555;">
+                                <li><strong>Nombre:</strong> ${userFullName}</li>
+                                <li><strong>Email:</strong> ${data.user_email}</li>
+                            </ul>
+                            <p style="color: #888; font-size: 12px;">Este es un mensaje automático. Por favor, no respondas a este correo.</p>
+                        </div>
+                    `,
                 },
             });
         }
@@ -254,7 +281,7 @@ export const deleteBusinessById = onCall(async ({ data, ...context }) => {
 
         userRecords.forEach(async (doc) => {
             const userId = doc.id;
-            await deleteUserV2Common({ data: userId });
+            await deleteUserV2Common({ data: userId, ...context });
         });
 
         //remove business

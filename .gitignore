@@ -47,6 +47,8 @@ build/Release
 # Dependency directories
 node_modules/
 
+functions/emulator-data/
+
 # Optional npm cache directory
 .npm
 
