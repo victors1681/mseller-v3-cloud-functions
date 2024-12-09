@@ -105,7 +105,7 @@ export const addUserV2Common = async ({ data, ...context }: any) => {
         }
         const tier = data.userTier ? data.userTier : 'free';
 
-        //bypass validation if the user is created from the portal
+        // bypass validation if the user is created from the portal
         if (!data.creationFromPortal) {
             const requestedUser = await getCurrentUserInfo(context);
             if (!requestedUser) {
@@ -121,7 +121,7 @@ export const addUserV2Common = async ({ data, ...context }: any) => {
 
         const userRecord = await admin.auth().createUser({
             email,
-            emailVerified: data.emailVerified !== undefined ? data.emailVerified : true, //default verified
+            emailVerified: data.emailVerified !== undefined ? data.emailVerified : true, // default verified
             password,
             displayName,
             disabled: false,
@@ -245,7 +245,7 @@ const isValidPoweredUser = async <T>(request: CallableRequest<T>, userId: string
 
     const { business, type } = userRecord?.customClaims || {};
 
-    //Only super users can change password to any business account
+    // Only super users can change password to any business account
     if (business !== userRecordToUpdate?.customClaims?.business && type !== UserTypeEnum.superuser) {
         throw new functions.https.HttpsError(
             'permission-denied',
@@ -257,7 +257,7 @@ const isValidPoweredUser = async <T>(request: CallableRequest<T>, userId: string
         throw new functions.https.HttpsError('permission-denied', `User Type is not defined ${type}`);
     }
 
-    //Only Admin or super password can change password for another account
+    // Only Admin or super password can change password for another account
     if (userId !== request?.auth?.uid && type !== UserTypeEnum.administrator && type !== UserTypeEnum.superuser) {
         throw new functions.https.HttpsError(
             'permission-denied',

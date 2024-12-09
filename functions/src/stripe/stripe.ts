@@ -2,9 +2,9 @@ import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import { logger } from 'firebase-functions/v2';
 import { CallableRequest, HttpsError, onCall } from 'firebase-functions/v2/https';
-import { BUSINESS_COLLECTION } from '../index';
 import Stripe from 'stripe';
 import { IBusiness } from '../business/businessType';
+import { BUSINESS_COLLECTION } from '../index';
 
 interface CreateSubscriptionProps {
     price: string;
@@ -22,7 +22,7 @@ function isPaymentIntent(latest_invoice: string | Stripe.PaymentIntent | null): 
     return latest_invoice !== null && (latest_invoice as Stripe.PaymentIntent).id !== undefined;
 }
 
-export const createSubscription = onCall(async (request: CallableRequest<CreateSubscriptionProps>) => {
+export const CreateSubscription = onCall(async (request: CallableRequest<CreateSubscriptionProps>) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'User must be authenticated to create a subscription.');
     }
@@ -124,7 +124,7 @@ export const createSubscription = onCall(async (request: CallableRequest<CreateS
     }
 });
 
-export const cancelSubscription = onCall(async (request: CallableRequest) => {
+export const CancelSubscription = onCall(async (request: CallableRequest) => {
     // Ensure the user is authenticated
 
     if (!request.auth) {
@@ -166,7 +166,7 @@ export const cancelSubscription = onCall(async (request: CallableRequest) => {
     }
 });
 
-export const fetchStripeProducts = onCall(async (request: CallableRequest) => {
+export const FetchStripeProducts = onCall(async (request: CallableRequest) => {
     try {
         if (!request.auth) {
             throw new functions.https.HttpsError(
@@ -207,7 +207,7 @@ export const fetchStripeProducts = onCall(async (request: CallableRequest) => {
     }
 });
 
-export const getCustomerPaymentsHistory = onCall(async (request) => {
+export const GetCustomerPaymentsHistory = onCall(async (request) => {
     // Validate authentication
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'User must be authenticated to fetch payments.');
@@ -307,7 +307,7 @@ export const getCustomerPaymentsHistory = onCall(async (request) => {
     }
 });
 
-export const getCustomerPaymentMethods = onCall(async (request) => {
+export const GetCustomerPaymentMethods = onCall(async (request) => {
     // Validate authentication
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'User must be authenticated to fetch payment methods.');
@@ -407,7 +407,7 @@ interface UpdateCardRequest {
     isDefault: boolean;
 }
 
-export const updateCustomerCard = onCall(async (request: CallableRequest<UpdateCardRequest>) => {
+export const UpdateCustomerCard = onCall(async (request: CallableRequest<UpdateCardRequest>) => {
     // Validate authentication
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'User must be authenticated to fetch payment methods.');
@@ -471,7 +471,7 @@ export const updateCustomerCard = onCall(async (request: CallableRequest<UpdateC
     }
 });
 
-export const removeCustomerCard = onCall(async (request: CallableRequest<{ cardId: string }>) => {
+export const RemoveCustomerCard = onCall(async (request: CallableRequest<{ cardId: string }>) => {
     // Initialize Stripe and Firebase admin
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
@@ -498,7 +498,7 @@ export const removeCustomerCard = onCall(async (request: CallableRequest<{ cardI
             throw new HttpsError('not-found', 'Stripe Customer ID not found for the business.');
         }
 
-        //const stripeCustomerId = businessData.stripeCustomerId;
+        // const stripeCustomerId = businessData.stripeCustomerId;
 
         // Detach the card from the Stripe customer
         const detachedPaymentMethod = await stripe.paymentMethods.detach(cardId);

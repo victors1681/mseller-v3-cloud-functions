@@ -1,17 +1,17 @@
-import { v4 } from 'uuid';
-import sharp from 'sharp';
-import * as functions from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
-import { CallableRequest } from 'firebase-functions/v2/https';
-import { BUSINESS_COLLECTION, IMAGES_COLLECTION } from '..';
+import * as functions from 'firebase-functions/v2';
 import { onDocumentDeleted } from 'firebase-functions/v2/firestore';
+import { CallableRequest } from 'firebase-functions/v2/https';
+import sharp from 'sharp';
+import { v4 } from 'uuid';
+import { BUSINESS_COLLECTION, IMAGES_COLLECTION } from '..';
 
 interface UploadImagesProps {
     images: string[];
     type?: 'products' | '';
 }
 
-export const uploadImages = functions.https.onCall(async (request: CallableRequest<UploadImagesProps>) => {
+export const UploadImages = functions.https.onCall(async (request: CallableRequest<UploadImagesProps>) => {
     // Validate authentication
     if (!request.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated to upload images.');

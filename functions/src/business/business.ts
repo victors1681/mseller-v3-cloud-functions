@@ -1,6 +1,7 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
-//import { logger } from 'firebase-functions/v2';
+import { HttpsError, onCall } from 'firebase-functions/v2/https';
+// import { logger } from 'firebase-functions/v2';
 import {
     addUserV2Common,
     BUSINESS_COLLECTION,
@@ -8,7 +9,6 @@ import {
     getCurrentUserInfo,
     USER_COLLECTION,
 } from '../index';
-import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { IBusiness } from './businessType';
 
 /**
@@ -73,7 +73,7 @@ export const addPortalBusiness = onCall({ cors: '*' }, async ({ data, ...context
         const currentDate = new Date().toLocaleDateString();
         const userFullName = `${data.user_first_name} ${data.user_last_name}`;
 
-        //Ensure all the data is consistent with the portal
+        // Ensure all the data is consistent with the portal
         const defaultBusinessData: IBusiness = {
             businessId: '',
             name: data.business_name,
@@ -83,7 +83,7 @@ export const addPortalBusiness = onCall({ cors: '*' }, async ({ data, ...context
             logoUrl: '',
             footerMessage: '',
             footerReceipt: '',
-            sellerLicenses: 1, //default license
+            sellerLicenses: 1, // default license
             contact: userFullName,
             contactPhone: '',
             fax: '',
@@ -138,17 +138,17 @@ export const addPortalBusiness = onCall({ cors: '*' }, async ({ data, ...context
         const businessData: IBusiness = {
             ...defaultBusinessData,
         };
-        //Create the business
+        // Create the business
 
         const business = await admin
             .firestore()
             .collection(BUSINESS_COLLECTION)
             .add({ ...businessData });
 
-        //Update businessId
+        // Update businessId
         await admin.firestore().collection(BUSINESS_COLLECTION).doc(business.id).update({ businessId: business.id });
 
-        //Create the new user
+        // Create the new user
 
         const userData = {
             email: data.user_email,
@@ -163,20 +163,20 @@ export const addPortalBusiness = onCall({ cors: '*' }, async ({ data, ...context
             warehouse: '1',
             phone: data.phone,
             disabled: false,
-            //Config
+            // Config
             firstTimeLogin: true,
             initialConfig: true,
             onlyMyClients: true,
             createClient: true,
             allowDiscount: true,
             allowBankDeposit: true,
-            emailVerified: false, //NO VERIFIED
+            emailVerified: false, // NO VERIFIED
             creationFromPortal: true, // TEMPORAL FLAG TO ALLOW TO CREATE A NEW USER FROM THE PORTAL
         };
         // Call addUserV2 to create the user
         const addUserResponse = await addUserV2Common({ data: userData, ...context });
 
-        //create user
+        // create user
         if (addUserResponse.userId) {
             const verificationLink = await admin.auth().generateEmailVerificationLink(data.user_email);
             console.log('Verification link generated:', verificationLink);
@@ -258,7 +258,7 @@ export const deleteBusinessById = onCall(async ({ data, ...context }) => {
 
         const currentUser = await getCurrentUserInfo(context);
 
-        //Only super user can remove a business or administrator from the same business
+        // Only super user can remove a business or administrator from the same business
         if (currentUser.business !== businessId && currentUser.type !== 'superuser') {
             throw new functions.https.HttpsError(
                 'permission-denied',
@@ -284,7 +284,7 @@ export const deleteBusinessById = onCall(async ({ data, ...context }) => {
             await deleteUserV2Common({ data: userId, ...context });
         });
 
-        //remove business
+        // remove business
         const businessData = await getBusinessById(businessId);
         await admin.firestore().collection(BUSINESS_COLLECTION).doc(businessId).delete();
 
@@ -299,7 +299,7 @@ export const deleteBusinessById = onCall(async ({ data, ...context }) => {
             },
         });
 
-        return { result: 'Business removed', businessId: businessId };
+        return { result: 'Business removed', businessId };
     } catch (error) {
         throw new HttpsError('invalid-argument', error.message);
     }

@@ -1,14 +1,14 @@
+import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import { createDocument, createReceipt } from 'pdf-documents';
 import * as uuid from 'uuid';
 import { getBusinessById } from '../business';
+import { IIntegration } from '../business/businessType';
 import { sendGenericEmail } from '../email/email';
 import { BUSINESS_COLLECTION, DOCUMENTS_COLLECTION, REGION } from '../index';
 import { formatCurrency } from '../util/formats';
 import { getDocumentTemplate, IBodyParameter, IInvoiceTemplateProps, sendMessage } from '../whatsapp';
 import { Document, Receipt } from './document.d';
-import { IIntegration } from '../business/businessType';
-import * as admin from 'firebase-admin';
 // const BUCKET_NAME = 'mobile-seller-documents';
 
 const sendWhatsappNotification = async (data: any, url: string, businessId: string): Promise<void> => {
