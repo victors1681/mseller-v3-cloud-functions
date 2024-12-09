@@ -3,7 +3,7 @@ import { createDocument, createReceipt } from 'pdf-documents';
 import * as uuid from 'uuid';
 import { getBusinessById } from '../business';
 import { sendGenericEmail } from '../email/email';
-import { BUSINESS_COLLECTION, DOCUMENTS_COLLECTION, IMAGES_COLLECTION, REGION } from '../index';
+import { BUSINESS_COLLECTION, DOCUMENTS_COLLECTION, REGION } from '../index';
 import { formatCurrency } from '../util/formats';
 import { getDocumentTemplate, IBodyParameter, IInvoiceTemplateProps, sendMessage } from '../whatsapp';
 import { Document, Receipt } from './document.d';
