@@ -1,6 +1,6 @@
 import Mailjet from 'node-mailjet';
 import { getBusinessById } from '../business';
-import { Document, Receipt } from '../documents/document';
+import { Document, Receipt } from '../documents/document.d';
 
 export const sendGenericEmail = async (data: Document | Receipt, url: string, businessId: string): Promise<void> => {
     const mailjet = new Mailjet({
@@ -68,7 +68,7 @@ export const sendGenericEmail = async (data: Document | Receipt, url: string, bu
     try {
         console.info('Subject:', JSON.stringify(subject), ' Payload:', JSON.stringify(payload));
         const result = await mailjet.post('send', { version: 'v3.1' }).request(payload);
-        if (result.response.status == 200) {
+        if (result.response.status === 200) {
             console.info('Success', JSON.stringify(result));
         } else {
             throw Error(JSON.stringify(result));

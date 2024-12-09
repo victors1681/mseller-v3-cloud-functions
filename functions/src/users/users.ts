@@ -115,7 +115,7 @@ export const addUserV2Common = async ({ data, ...context }: any) => {
                 throw Error('you do not have the role to create a power user');
             }
         } else {
-            data.type === UserTypeEnum.administrator;
+            data.type = UserTypeEnum.administrator;
             delete data.creationFromPortal;
         }
 
@@ -268,11 +268,11 @@ const isValidPoweredUser = async <T>(request: CallableRequest<T>, userId: string
     return true;
 };
 
-interface UpdatePasswordV2Props {
+interface IUpdatePasswordV2Props {
     userId: string;
     password: string;
 }
-export const updatePasswordV2 = onCall(async (request: CallableRequest<UpdatePasswordV2Props>) => {
+export const updatePasswordV2 = onCall(async (request: CallableRequest<IUpdatePasswordV2Props>) => {
     try {
         const data = request.data;
         const { userId, password } = data;
@@ -425,10 +425,10 @@ export const getUserProfileV2 = onCall({ cors: '*' }, async ({ data, auth }) => 
     }
 });
 
-interface TriggerForgotPasswordProps {
+interface ITriggerForgotPasswordProps {
     email: string;
 }
-export const triggerForgotPassword = onCall(async (request: CallableRequest<TriggerForgotPasswordProps>) => {
+export const triggerForgotPassword = onCall(async (request: CallableRequest<ITriggerForgotPasswordProps>) => {
     const { email } = request.data;
 
     // Validate input

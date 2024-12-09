@@ -6,12 +6,12 @@ import sharp from 'sharp';
 import { v4 } from 'uuid';
 import { BUSINESS_COLLECTION, IMAGES_COLLECTION } from '..';
 
-interface UploadImagesProps {
+interface IUploadImagesProps {
     images: string[];
     type?: 'products' | '';
 }
 
-export const UploadImages = functions.https.onCall(async (request: CallableRequest<UploadImagesProps>) => {
+export const UploadImages = functions.https.onCall(async (request: CallableRequest<IUploadImagesProps>) => {
     // Validate authentication
     if (!request.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated to upload images.');

@@ -6,7 +6,7 @@ import Stripe from 'stripe';
 import { IBusiness } from '../business/businessType';
 import { BUSINESS_COLLECTION } from '../index';
 
-interface CreateSubscriptionProps {
+interface ICreateSubscriptionProps {
     price: string;
     quantity: number;
     tier: string;
@@ -14,15 +14,15 @@ interface CreateSubscriptionProps {
 }
 
 // Type guard to check if latest_invoice is an instance of Stripe.Invoice
-function isInvoice(latest_invoice: string | Stripe.Invoice | null): latest_invoice is Stripe.Invoice {
-    return latest_invoice !== null && (latest_invoice as Stripe.Invoice).id !== undefined;
+function isInvoice(latestInvoice: string | Stripe.Invoice | null): latestInvoice is Stripe.Invoice {
+    return latestInvoice !== null && (latestInvoice as Stripe.Invoice).id !== undefined;
 }
 
-function isPaymentIntent(latest_invoice: string | Stripe.PaymentIntent | null): latest_invoice is Stripe.PaymentIntent {
-    return latest_invoice !== null && (latest_invoice as Stripe.PaymentIntent).id !== undefined;
+function isPaymentIntent(latestInvoice: string | Stripe.PaymentIntent | null): latestInvoice is Stripe.PaymentIntent {
+    return latestInvoice !== null && (latestInvoice as Stripe.PaymentIntent).id !== undefined;
 }
 
-export const CreateSubscription = onCall(async (request: CallableRequest<CreateSubscriptionProps>) => {
+export const createSubscription = onCall(async (request: CallableRequest<ICreateSubscriptionProps>) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'User must be authenticated to create a subscription.');
     }
@@ -124,7 +124,7 @@ export const CreateSubscription = onCall(async (request: CallableRequest<CreateS
     }
 });
 
-export const CancelSubscription = onCall(async (request: CallableRequest) => {
+export const cancelSubscription = onCall(async (request: CallableRequest) => {
     // Ensure the user is authenticated
 
     if (!request.auth) {
@@ -166,7 +166,7 @@ export const CancelSubscription = onCall(async (request: CallableRequest) => {
     }
 });
 
-export const FetchStripeProducts = onCall(async (request: CallableRequest) => {
+export const fetchStripeProducts = onCall(async (request: CallableRequest) => {
     try {
         if (!request.auth) {
             throw new functions.https.HttpsError(
@@ -207,7 +207,7 @@ export const FetchStripeProducts = onCall(async (request: CallableRequest) => {
     }
 });
 
-export const GetCustomerPaymentsHistory = onCall(async (request) => {
+export const getCustomerPaymentsHistory = onCall(async (request) => {
     // Validate authentication
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'User must be authenticated to fetch payments.');
@@ -307,7 +307,7 @@ export const GetCustomerPaymentsHistory = onCall(async (request) => {
     }
 });
 
-export const GetCustomerPaymentMethods = onCall(async (request) => {
+export const getCustomerPaymentMethods = onCall(async (request) => {
     // Validate authentication
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'User must be authenticated to fetch payment methods.');
@@ -398,7 +398,7 @@ export const GetCustomerPaymentMethods = onCall(async (request) => {
     }
 });
 
-interface UpdateCardRequest {
+interface IUpdateCardRequest {
     cardNumber: string;
     name: string;
     expirationDate: string; // Format MM/YY
@@ -407,7 +407,7 @@ interface UpdateCardRequest {
     isDefault: boolean;
 }
 
-export const UpdateCustomerCard = onCall(async (request: CallableRequest<UpdateCardRequest>) => {
+export const updateCustomerCard = onCall(async (request: CallableRequest<IUpdateCardRequest>) => {
     // Validate authentication
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'User must be authenticated to fetch payment methods.');
@@ -471,7 +471,7 @@ export const UpdateCustomerCard = onCall(async (request: CallableRequest<UpdateC
     }
 });
 
-export const RemoveCustomerCard = onCall(async (request: CallableRequest<{ cardId: string }>) => {
+export const removeCustomerCard = onCall(async (request: CallableRequest<{ cardId: string }>) => {
     // Initialize Stripe and Firebase admin
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
