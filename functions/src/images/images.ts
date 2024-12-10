@@ -11,7 +11,7 @@ interface IUploadImagesProps {
     type?: 'products' | '';
 }
 
-export const UploadImages = functions.https.onCall(async (request: CallableRequest<IUploadImagesProps>) => {
+export const uploadImages = functions.https.onCall(async (request: CallableRequest<IUploadImagesProps>) => {
     // Validate authentication
     if (!request.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated to upload images.');
@@ -170,41 +170,37 @@ const processImage = async (
     };
 };
 
-export const onImageDeleted = onDocumentDeleted(
-    `${BUSINESS_COLLECTION}/{businessId}/${IMAGES_COLLECTION}{imageId}`,
-    async (event) => {
-        console.log('Deleting document', event);
-        const deletedImageSnapshot = event.data;
+export const onImageDeleted = onDocumentDeleted(`business/{businessId}/images/{imageId}`, async (event) => {
+    const deletedImageSnapshot = event.data;
 
-        if (!deletedImageSnapshot) {
-            console.error('No data found for deleted document.');
-            return;
+    if (!deletedImageSnapshot) {
+        console.error('No data found for deleted document.');
+        return;
+    }
+    const deletedImageData = deletedImageSnapshot.data();
+
+    const { originalFile, thumbnailFile } = deletedImageData;
+
+    try {
+        // Delete the original file
+        const bucket = admin.storage().bucket();
+        if (originalFile) {
+            const originalFileRef = bucket.file(originalFile);
+            await originalFileRef.delete();
+            console.log(`Deleted original file: ${originalFile}`);
+        } else {
+            console.warn('No original file reference found in the deleted document.');
         }
-        const deletedImageData = deletedImageSnapshot.data();
 
-        const { originalFile, thumbnailFile } = deletedImageData;
-
-        try {
-            // Delete the original file
-            const bucket = admin.storage().bucket();
-            if (originalFile) {
-                const originalFileRef = bucket.file(originalFile);
-                await originalFileRef.delete();
-                console.log(`Deleted original file: ${originalFile}`);
-            } else {
-                console.warn('No original file reference found in the deleted document.');
-            }
-
-            // Delete the thumbnail file
-            if (thumbnailFile) {
-                const thumbnailFileRef = bucket.file(thumbnailFile);
-                await thumbnailFileRef.delete();
-                console.log(`Deleted thumbnail file: ${thumbnailFile}`);
-            } else {
-                console.warn('No thumbnail file reference found in the deleted document.');
-            }
-        } catch (error) {
-            console.error('Error deleting files:', error);
+        // Delete the thumbnail file
+        if (thumbnailFile) {
+            const thumbnailFileRef = bucket.file(thumbnailFile);
+            await thumbnailFileRef.delete();
+            console.log(`Deleted thumbnail file: ${thumbnailFile}`);
+        } else {
+            console.warn('No thumbnail file reference found in the deleted document.');
         }
-    },
-);
+    } catch (error) {
+        console.error('Error deleting files:', error);
+    }
+});
