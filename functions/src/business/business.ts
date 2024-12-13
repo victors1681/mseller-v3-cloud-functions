@@ -1,7 +1,8 @@
+import axios from 'axios';
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
+import { logger } from 'firebase-functions/v2';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
-// import { logger } from 'firebase-functions/v2';
 import {
     addUserV2Common,
     BUSINESS_COLLECTION,
@@ -30,6 +31,7 @@ export const getBusinessById = async (businessId: string): Promise<IBusiness> =>
             );
         }
     } catch (error) {
+        logger.error(error);
         throw new functions.https.HttpsError('invalid-argument', error.message);
     }
 };
@@ -48,21 +50,22 @@ const isAccountExist = async (email: string) => {
  */
 export const addPortalBusiness = onCall({ cors: '*' }, async ({ data, ...context }) => {
     try {
-        const response = await fetch(`https://www.google.com/recaptcha/api/siteverify`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
+        const response = await axios.post(
+            'https://www.google.com/recaptcha/api/siteverify',
+            new URLSearchParams({
                 secret: process.env.GOOGLE_RE_CAPTCHA || '',
                 response: data.reCaptchaToken,
             }),
-        });
+            {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+            },
+        );
 
-        const captchaData = await response.json();
+        const captchaData = response.data;
 
-        console.log('Response from Re Catcha', captchaData);
-        if (!captchaData.success || captchaData.score < 0.5) {
+        if (!captchaData?.success || captchaData?.score < 0.5) {
             // Adjust score threshold as needed
             throw new functions.https.HttpsError('failed-precondition', `reCatcha Invalid`);
         }
@@ -98,10 +101,10 @@ export const addPortalBusiness = onCall({ cors: '*' }, async ({ data, ...context
                 serverPort: process.env.CLOUD_PRODUCTION_API_PORT || '',
                 sandboxUrl: process.env.CLOUD_TEST_API_URL || '',
                 sandboxPort: process.env.CLOUD_TEST_API_PORT || '',
-                portalServerUrl: '',
-                portalServerPort: '',
-                portalSandboxUrl: '',
-                portalSandboxPort: '',
+                portalServerUrl: process.env.CLOUD_PORTAL_API_URL || '',
+                portalServerPort: process.env.CLOUD_PORTAL_API_PORT || '',
+                portalSandboxUrl: process.env.CLOUD_PORTAL_SANDBOX_API_URL || '',
+                portalSandboxPort: process.env.CLOUD_PORTAL_SANDBOX_API_PORT || '',
                 testMode: false,
                 displayPriceWithTax: false,
                 allowPriceBelowMinimum: false,
@@ -233,9 +236,10 @@ export const addPortalBusiness = onCall({ cors: '*' }, async ({ data, ...context
             });
         }
 
-        functions.logger.info('New business and user created');
+        logger.info('New business and user created');
         return { result: 'Business and user created', userId: addUserResponse.userId, businessId: business.id };
     } catch (error) {
+        logger.error(error);
         throw new HttpsError('invalid-argument', error.message);
     }
 });
@@ -301,6 +305,7 @@ export const deleteBusinessById = onCall(async ({ data, ...context }) => {
 
         return { result: 'Business removed', businessId };
     } catch (error) {
+        logger.error(error);
         throw new HttpsError('invalid-argument', error.message);
     }
 });
