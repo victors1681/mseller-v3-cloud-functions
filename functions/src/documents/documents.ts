@@ -1,15 +1,15 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
+import { onCall } from 'firebase-functions/v2/https';
 import { createDocument, createReceipt } from 'pdf-documents';
 import * as uuid from 'uuid';
 import { getBusinessById } from '../business';
 import { IIntegration } from '../business/businessType';
 import { sendGenericEmail } from '../email/email';
-import { BUSINESS_COLLECTION, DOCUMENTS_COLLECTION, REGION } from '../index';
+import { BUSINESS_COLLECTION, DOCUMENTS_COLLECTION } from '../index';
 import { formatCurrency } from '../util/formats';
 import { getDocumentTemplate, IBodyParameter, IInvoiceTemplateProps, sendMessage } from '../whatsapp';
 import { Document, Receipt } from './document.d';
-// const BUCKET_NAME = 'mobile-seller-documents';
 
 const sendWhatsappNotification = async (data: any, url: string, businessId: string): Promise<void> => {
     if (!data.whatsapp?.template || !data.whatsapp?.recipient) {
@@ -91,9 +91,14 @@ const sendWhatsappNotification = async (data: any, url: string, businessId: stri
  * based on the user request it get the user who is requesting and get the business id associated
  */
 
-export const generatePDF = functions.region(REGION).https.onCall(
-    async (payload: any, context): Promise<{ url: string }> => {
+// export const generatePDF = functions.region(REGION).https.onCall(
+//     async (payload: any, context): Promise<{ url: string }> => {
+//         try {
+export const generatePDF = onCall(
+    async (context): Promise<{ url: string }> => {
         try {
+            const payload = context.data;
+
             if (!context.auth) {
                 throw new functions.https.HttpsError(
                     'unauthenticated',
@@ -137,7 +142,7 @@ export const generatePDF = functions.region(REGION).https.onCall(
              */
 
             if (data.metadata.sendByWhatsapp && data.whatsapp?.template && data.whatsapp?.recipient) {
-                await sendWhatsappNotification(data, url[0], businessId);
+                await sendWhatsappNotification(data, url, businessId);
             } else {
                 console.log('Wont send whatsapp due to missing parameters', {
                     sendByWhatsapp: data.metadata.sendByWhatsapp,
@@ -148,7 +153,7 @@ export const generatePDF = functions.region(REGION).https.onCall(
 
             // Send document by email
             if (data.metadata.sendByEmail) {
-                await sendGenericEmail(data, url[0], businessId);
+                await sendGenericEmail(data, url, businessId);
             }
             const firestore = admin.firestore();
 

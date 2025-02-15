@@ -1,10 +1,9 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
+import { CallableRequest, HttpsError, onCall } from 'firebase-functions/v2/https';
 import { BUSINESS_COLLECTION, CONVERSATION_COLLECTION, MESSAGES_COLLECTION, USER_COLLECTION } from '../index';
 import { sendNotificationToUserByIdLocal } from '../messaging';
 import { getCurrentUserInfo, getUserById } from '../users';
-
-const REGION = 'us-east1';
 
 interface IMessage {
     createdAt: string;
@@ -31,146 +30,148 @@ interface IConversationResponse {
 /**
  * based on the user request it get the user who is requesting and get the business id associated
  */
-export const getConversations = functions.region(REGION).https.onCall(
-    async (data, context): Promise<IConversationResponse[]> => {
-        try {
-            const requestedUser = await getCurrentUserInfo(context);
+// export const getConversations = functions.region(REGION).https.onCall(
+//     async (data, context): Promise<IConversationResponse[]> => {
+//         try {
+export const getConversations = onCall(async (context: CallableRequest<ISetMessageStatus>) => {
+    try {
+        const requestedUser = await getCurrentUserInfo(context);
 
-            if (!requestedUser.business) {
-                throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
-            }
-
-            const conversationRecords = await admin
-                .firestore()
-                .collection(USER_COLLECTION)
-                .doc(requestedUser.userId)
-                .collection(CONVERSATION_COLLECTION)
-                .get();
-
-            if (!conversationRecords.docs.length) {
-                throw new functions.https.HttpsError('invalid-argument', 'There is not available conversations');
-            }
-
-            const conversationList = [] as IConversationResponse[];
-
-            for await (const doc of conversationRecords.docs) {
-                const result = await getConversationInfo(doc);
-                if (result) {
-                    conversationList.push(result);
-                }
-            }
-
-            console.log(`conversationList: (${conversationList})`);
-            return conversationList;
-        } catch (error) {
-            throw new functions.https.HttpsError('invalid-argument', error.message);
+        if (!requestedUser.business) {
+            throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
-    },
-);
+
+        const conversationRecords = await admin
+            .firestore()
+            .collection(USER_COLLECTION)
+            .doc(requestedUser.userId)
+            .collection(CONVERSATION_COLLECTION)
+            .get();
+
+        if (!conversationRecords.docs.length) {
+            throw new functions.https.HttpsError('invalid-argument', 'There is not available conversations');
+        }
+
+        const conversationList = [] as IConversationResponse[];
+
+        for await (const doc of conversationRecords.docs) {
+            const result = await getConversationInfo(doc);
+            if (result) {
+                conversationList.push(result);
+            }
+        }
+
+        console.log(`conversationList: (${conversationList})`);
+        return conversationList;
+    } catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
 
 /**
  * @param targetUser string This is the user who with going to stablish the conversation
  * Create new Conversation between two party
  */
 
-export const newConversation = functions.region(REGION).https.onCall(
-    async (targetUser, context): Promise<IConversationResponse> => {
-        try {
-            const requestedUser = await getCurrentUserInfo(context);
-            const targetUserInfo = await getUserById(targetUser);
+// export const newConversation = functions.region(REGION).https.onCall(
+//     async (targetUser, context): Promise<IConversationResponse> => {
+export const newConversation = onCall(async (context) => {
+    try {
+        const targetUser = context.data.targetUser;
+        const requestedUser = await getCurrentUserInfo(context);
+        const targetUserInfo = await getUserById(targetUser);
 
-            if (!requestedUser.business) {
-                throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
-            }
+        if (!requestedUser.business) {
+            throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
+        }
 
-            // Check if conversation exist
-            const conversationExist = await admin
-                .firestore()
-                .collection(USER_COLLECTION)
-                .doc(requestedUser.userId)
-                .collection(CONVERSATION_COLLECTION)
-                .doc(targetUserInfo.userId)
-                .get();
+        // Check if conversation exist
+        const conversationExist = await admin
+            .firestore()
+            .collection(USER_COLLECTION)
+            .doc(requestedUser.userId)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(targetUserInfo.userId)
+            .get();
 
-            if (conversationExist.exists) {
-                const cExistData: any = conversationExist.data();
-                const conversationFound = await admin
-                    .firestore()
-                    .collection(BUSINESS_COLLECTION)
-                    .doc(requestedUser.businessId ?? requestedUser.business.businessId)
-                    .collection(CONVERSATION_COLLECTION)
-                    .doc(cExistData.conversationId)
-                    .get();
-
-                if (conversationFound.exists) {
-                    console.log('CONVERSATION EXIST ++');
-                    const currentConversationId = conversationFound.id;
-                    const currentConversation = conversationFound.data() as IConversation;
-
-                    return {
-                        user: targetUserInfo,
-                        conversationId: currentConversationId,
-                        unseenCount: cExistData.unseenCount,
-                        lastMessageTime: currentConversation.lastMessageTime,
-                        displayMessage: currentConversation.displayMessage,
-                    } as IConversationResponse;
-                }
-            }
-
-            // Create new conversation
-            const conversationRef = await admin
+        if (conversationExist.exists) {
+            const cExistData: any = conversationExist.data();
+            const conversationFound = await admin
                 .firestore()
                 .collection(BUSINESS_COLLECTION)
                 .doc(requestedUser.businessId ?? requestedUser.business.businessId)
                 .collection(CONVERSATION_COLLECTION)
-                .add({
-                    displayMessage: '',
-                    lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
-                    members: {
-                        [requestedUser.userId]: true,
-                        [targetUser]: true,
-                    },
-                });
+                .doc(cExistData.conversationId)
+                .get();
 
-            // create new node in user requested node
+            if (conversationFound.exists) {
+                console.log('CONVERSATION EXIST ++');
+                const currentConversationId = conversationFound.id;
+                const currentConversation = conversationFound.data() as IConversation;
 
-            await admin
-                .firestore()
-                .collection(USER_COLLECTION)
-                .doc(requestedUser.userId)
-                .collection(CONVERSATION_COLLECTION)
-                .doc(targetUser)
-                .set({
-                    conversationId: conversationRef.id,
-                    unseenCount: 0,
-                });
+                return {
+                    user: targetUserInfo,
+                    conversationId: currentConversationId,
+                    unseenCount: cExistData.unseenCount,
+                    lastMessageTime: currentConversation.lastMessageTime,
+                    displayMessage: currentConversation.displayMessage,
+                } as IConversationResponse;
+            }
+        }
 
-            // create new node in targetUser
+        // Create new conversation
+        const conversationRef = await admin
+            .firestore()
+            .collection(BUSINESS_COLLECTION)
+            .doc(requestedUser.businessId ?? requestedUser.business.businessId)
+            .collection(CONVERSATION_COLLECTION)
+            .add({
+                displayMessage: '',
+                lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
+                members: {
+                    [requestedUser.userId]: true,
+                    [targetUser]: true,
+                },
+            });
 
-            await admin
-                .firestore()
-                .collection(USER_COLLECTION)
-                .doc(targetUser)
-                .collection(CONVERSATION_COLLECTION)
-                .doc(requestedUser.userId)
-                .set({
-                    conversationId: conversationRef.id,
-                    unseenCount: 0,
-                });
+        // create new node in user requested node
 
-            return {
-                user: targetUserInfo,
+        await admin
+            .firestore()
+            .collection(USER_COLLECTION)
+            .doc(requestedUser.userId)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(targetUser)
+            .set({
                 conversationId: conversationRef.id,
                 unseenCount: 0,
-                lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
-                displayMessage: '',
-            } as IConversationResponse;
-        } catch (error) {
-            console.error(error);
-            throw new functions.https.HttpsError('invalid-argument', error.message);
-        }
-    },
-);
+            });
+
+        // create new node in targetUser
+
+        await admin
+            .firestore()
+            .collection(USER_COLLECTION)
+            .doc(targetUser)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(requestedUser.userId)
+            .set({
+                conversationId: conversationRef.id,
+                unseenCount: 0,
+            });
+
+        return {
+            user: targetUserInfo,
+            conversationId: conversationRef.id,
+            unseenCount: 0,
+            lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
+            displayMessage: '',
+        } as IConversationResponse;
+    } catch (error) {
+        console.error(error);
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
 
 interface IMessagesResponse {
     messageId: string;
@@ -181,36 +182,37 @@ interface IMessagesResponse {
     url: string;
 }
 
-export const getMessages = functions.region(REGION).https.onCall(
-    async (conversationId, context): Promise<IMessagesResponse[]> => {
-        try {
-            const requestedUser = await getCurrentUserInfo(context);
+// export const getMessages = functions.region(REGION).https.onCall(
+//     async (conversationId, context): Promise<IMessagesResponse[]> => {
+export const getMessages = onCall(async (context) => {
+    try {
+        const conversationId = context.data.conversationId;
+        const requestedUser = await getCurrentUserInfo(context);
 
-            if (!requestedUser.business) {
-                throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
-            }
-
-            // Create new conversation
-            const messages = await admin
-                .firestore()
-                .collection(BUSINESS_COLLECTION)
-                .doc(requestedUser.businessId ?? requestedUser.business.businessId)
-                .collection(CONVERSATION_COLLECTION)
-                .doc(conversationId)
-                .collection(MESSAGES_COLLECTION)
-                .get();
-
-            if (messages) {
-                const messagesRecords = messages.docs.map((d) => ({ messageId: d.id, ...d.data() }));
-                return messagesRecords as IMessagesResponse[];
-            }
-
-            return [] as IMessagesResponse[];
-        } catch (error) {
-            throw new functions.https.HttpsError('invalid-argument', error.message);
+        if (!requestedUser.business) {
+            throw new functions.https.HttpsError('invalid-argument', 'User does not have business associated');
         }
-    },
-);
+
+        // Create new conversation
+        const messages = await admin
+            .firestore()
+            .collection(BUSINESS_COLLECTION)
+            .doc(requestedUser.businessId ?? requestedUser.business.businessId)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(conversationId)
+            .collection(MESSAGES_COLLECTION)
+            .get();
+
+        if (messages) {
+            const messagesRecords = messages.docs.map((d) => ({ messageId: d.id, ...d.data() }));
+            return messagesRecords as IMessagesResponse[];
+        }
+
+        return [] as IMessagesResponse[];
+    } catch (error) {
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
 
 const getConversationInfo = async (doc: any): Promise<IConversationResponse | undefined> => {
     try {
@@ -284,216 +286,220 @@ enum MessageStatus {
     read = 'read',
 }
 
-export const saveNewMessage = functions.region(REGION).https.onCall(
-    async (data: ISaveNewMessageProps, context): Promise<boolean> => {
-        try {
-            const requestedUser = await getCurrentUserInfo(context);
-            const { content, conversationId, url, targetUser } = data;
+// export const saveNewMessage = functions.region(REGION).https.onCall(
+//     async (data: ISaveNewMessageProps, context): Promise<boolean> => {
+export const saveNewMessage = onCall(async (context: CallableRequest<ISaveNewMessageProps>) => {
+    try {
+        const data = context.data;
+        const requestedUser = await getCurrentUserInfo(context);
+        const { content, conversationId, url, targetUser } = data;
 
-            if (!requestedUser.business && conversationId) {
-                throw new functions.https.HttpsError(
-                    'invalid-argument',
-                    'User does not have business associated, content, and conversationId',
-                );
-            }
+        if (!requestedUser.business && conversationId) {
+            throw new functions.https.HttpsError(
+                'invalid-argument',
+                'User does not have business associated, content, and conversationId',
+            );
+        }
 
-            const message: any = {
-                content,
-                senderId: requestedUser.userId,
-                senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
-                sentDate: admin.firestore.FieldValue.serverTimestamp(),
-                status: MessageStatus.sent,
-                readDate: admin.firestore.FieldValue.serverTimestamp(),
-            };
+        const message: any = {
+            content,
+            senderId: requestedUser.userId,
+            senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
+            sentDate: admin.firestore.FieldValue.serverTimestamp(),
+            status: MessageStatus.sent,
+            readDate: admin.firestore.FieldValue.serverTimestamp(),
+        };
 
-            if (url) {
-                message.url = url;
-            }
+        if (url) {
+            message.url = url;
+        }
 
-            await admin
-                .firestore()
-                .collection(BUSINESS_COLLECTION)
-                .doc(requestedUser.businessId ?? requestedUser.business.businessId)
-                .collection(CONVERSATION_COLLECTION)
-                .doc(conversationId)
-                .collection(MESSAGES_COLLECTION)
-                .add(message);
+        await admin
+            .firestore()
+            .collection(BUSINESS_COLLECTION)
+            .doc(requestedUser.businessId ?? requestedUser.business.businessId)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(conversationId)
+            .collection(MESSAGES_COLLECTION)
+            .add(message);
 
-            // get User Members
-            const records = await admin
-                .firestore()
-                .collection(BUSINESS_COLLECTION)
-                .doc(requestedUser.businessId ?? requestedUser.business.businessId)
-                .collection(CONVERSATION_COLLECTION)
-                .doc(conversationId)
-                .get();
+        // get User Members
+        const records = await admin
+            .firestore()
+            .collection(BUSINESS_COLLECTION)
+            .doc(requestedUser.businessId ?? requestedUser.business.businessId)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(conversationId)
+            .get();
 
-            if (records.exists) {
-                const { members } = records.data() as { [key: string]: boolean };
-                const membersIds = Object.keys(members).filter((memberId) => memberId !== requestedUser.userId);
-                // update target user conversation unseen Counter
-                for await (const memberId of membersIds) {
-                    await admin
-                        .firestore()
-                        .collection(USER_COLLECTION)
-                        .doc(memberId)
-                        .collection(CONVERSATION_COLLECTION)
-                        .doc(requestedUser.userId) // user requested
-                        .update({
-                            unseenCount: admin.firestore.FieldValue.increment(1),
-                        });
-                }
-            }
-
-            // update conversation info
-            await admin
-                .firestore()
-                .collection(BUSINESS_COLLECTION)
-                .doc(requestedUser.businessId ?? requestedUser.business.businessId)
-                .collection(CONVERSATION_COLLECTION)
-                .doc(conversationId)
-                .update({
-                    displayMessage: content,
-                    lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
-                });
-
-            // Notify only one user. Currently support chat one to one
-            // Future update it should notify all user in the group
-
-            if (targetUser) {
-                const { userId } = targetUser;
-
-                // get all unseen notifications
-                const unseenRecords = await admin
+        if (records.exists) {
+            const { members } = records.data() as { [key: string]: boolean };
+            const membersIds = Object.keys(members).filter((memberId) => memberId !== requestedUser.userId);
+            // update target user conversation unseen Counter
+            for await (const memberId of membersIds) {
+                await admin
                     .firestore()
                     .collection(USER_COLLECTION)
-                    .doc(targetUser.userId)
+                    .doc(memberId)
                     .collection(CONVERSATION_COLLECTION)
-                    .where('unseenCount', '>', 0)
-                    .get();
+                    .doc(requestedUser.userId) // user requested
+                    .update({
+                        unseenCount: admin.firestore.FieldValue.increment(1),
+                    });
+            }
+        }
 
-                let badgeTotal = 1;
+        // update conversation info
+        await admin
+            .firestore()
+            .collection(BUSINESS_COLLECTION)
+            .doc(requestedUser.businessId ?? requestedUser.business.businessId)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(conversationId)
+            .update({
+                displayMessage: content,
+                lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
+            });
 
-                if (!unseenRecords.empty) {
-                    badgeTotal = unseenRecords.docs
-                        .map((userConversation) => {
-                            const currentData = userConversation.data();
-                            return currentData.unseenCount;
-                        })
-                        .reduce((acc, current) => {
-                            return acc + current;
-                        }, 0);
-                }
+        // Notify only one user. Currently support chat one to one
+        // Future update it should notify all user in the group
 
-                const notificationData = {
-                    targetUserId: userId,
-                    payload: {
-                        notification: {
-                            title: `${requestedUser.firstName} ${requestedUser.lastName}`,
-                            body: content,
-                        },
-                        data: {
-                            conversationId,
-                            senderId: requestedUser.userId,
-                            senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
-                            time: new Date().toISOString(),
-                        },
-                        apns: {
-                            payload: {
-                                aps: {
-                                    badge: badgeTotal,
-                                },
+        if (targetUser) {
+            const { userId } = targetUser;
+
+            // get all unseen notifications
+            const unseenRecords = await admin
+                .firestore()
+                .collection(USER_COLLECTION)
+                .doc(targetUser.userId)
+                .collection(CONVERSATION_COLLECTION)
+                .where('unseenCount', '>', 0)
+                .get();
+
+            let badgeTotal = 1;
+
+            if (!unseenRecords.empty) {
+                badgeTotal = unseenRecords.docs
+                    .map((userConversation) => {
+                        const currentData = userConversation.data();
+                        return currentData.unseenCount;
+                    })
+                    .reduce((acc, current) => {
+                        return acc + current;
+                    }, 0);
+            }
+
+            const notificationData = {
+                targetUserId: userId,
+                payload: {
+                    notification: {
+                        title: `${requestedUser.firstName} ${requestedUser.lastName}`,
+                        body: content,
+                    },
+                    data: {
+                        conversationId,
+                        senderId: requestedUser.userId,
+                        senderName: `${requestedUser.firstName} ${requestedUser.lastName}`,
+                        time: new Date().toISOString(),
+                    },
+                    apns: {
+                        payload: {
+                            aps: {
+                                badge: badgeTotal,
                             },
                         },
                     },
-                };
-                // Notify target user
-                await sendNotificationToUserByIdLocal(notificationData);
-            }
-
-            return true;
-        } catch (error) {
-            console.error(error);
-            throw new functions.https.HttpsError('invalid-argument', error.message);
+                },
+            };
+            // Notify target user
+            await sendNotificationToUserByIdLocal(notificationData);
         }
-    },
-);
+
+        return true;
+    } catch (error) {
+        console.error(error);
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
 
 interface IResetUnseenCounter {
     targetUserId: string;
 }
 
-export const resetUnseenCounter = functions.region(REGION).https.onCall(
-    async (data: IResetUnseenCounter, context): Promise<boolean> => {
-        try {
-            const requestedUser = await getCurrentUserInfo(context);
-            const { targetUserId } = data;
+// export const resetUnseenCounter = functions.region(REGION).https.onCall(
+//     async (data: IResetUnseenCounter, context): Promise<boolean> => {
+export const resetUnseenCounter = onCall(async (context: CallableRequest<IResetUnseenCounter>) => {
+    try {
+        const data = context.data;
+        const requestedUser = await getCurrentUserInfo(context);
+        const { targetUserId } = data;
 
-            if (!requestedUser.business && targetUserId) {
-                throw new functions.https.HttpsError(
-                    'invalid-argument',
-                    'User does not have business associated or targetUserId',
-                );
-            }
-
-            // update conversation info
-            await admin
-                .firestore()
-                .collection(USER_COLLECTION)
-                .doc(requestedUser.userId)
-                .collection(CONVERSATION_COLLECTION)
-                .doc(targetUserId)
-                .update({
-                    unseenCount: 0,
-                });
-
-            return true;
-        } catch (error) {
-            console.error(error);
-            throw new functions.https.HttpsError('invalid-argument', error.message);
+        if (!requestedUser.business && targetUserId) {
+            throw new functions.https.HttpsError(
+                'invalid-argument',
+                'User does not have business associated or targetUserId',
+            );
         }
-    },
-);
+
+        // update conversation info
+        await admin
+            .firestore()
+            .collection(USER_COLLECTION)
+            .doc(requestedUser.userId)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(targetUserId)
+            .update({
+                unseenCount: 0,
+            });
+
+        return true;
+    } catch (error) {
+        console.error(error);
+        throw new functions.https.HttpsError('invalid-argument', error.message);
+    }
+});
 
 interface ISetMessageStatus {
     messageId: string;
     status: MessageStatus;
     conversationId: string;
 }
-export const setMessageStatus = functions.region(REGION).https.onCall(
-    async (data: ISetMessageStatus, context): Promise<boolean> => {
-        try {
-            const requestedUser = await getCurrentUserInfo(context);
-            const { messageId, status, conversationId } = data;
+// export const setMessageStatus = functions.region(REGION).https.onCall(
+// async (data: ISetMessageStatus, context): Promise<boolean> => {
+export const setMessageStatus = onCall(async (context: CallableRequest<ISetMessageStatus>) => {
+    try {
+        const data = context.data;
 
-            if (!requestedUser.business && messageId && status && conversationId) {
-                console.error(
-                    `Invalid parameters conversationId: ${conversationId} messageId: ${messageId} status: ${status}`,
-                );
-                throw new functions.https.HttpsError(
-                    'invalid-argument',
-                    'User does not have business associated or targetUserId',
-                );
-            }
+        const requestedUser = await getCurrentUserInfo(context);
+        const { messageId, status, conversationId } = data;
 
-            // update conversation info
-            await admin
-                .firestore()
-                .collection(BUSINESS_COLLECTION)
-                .doc(requestedUser.businessId ?? requestedUser.business.businessId)
-                .collection(CONVERSATION_COLLECTION)
-                .doc(conversationId)
-                .collection(MESSAGES_COLLECTION)
-                .doc(messageId)
-                .update({
-                    status,
-                    readDate: status === 'read' ? admin.firestore.FieldValue.serverTimestamp() : null,
-                });
-
-            return true;
-        } catch (error) {
-            console.error(error);
-            throw new functions.https.HttpsError('invalid-argument', error.message);
+        if (!requestedUser.business && messageId && status && conversationId) {
+            console.error(
+                `Invalid parameters conversationId: ${conversationId} messageId: ${messageId} status: ${status}`,
+            );
+            throw new functions.https.HttpsError(
+                'invalid-argument',
+                'User does not have business associated or targetUserId',
+            );
         }
-    },
-);
+
+        // update conversation info
+        await admin
+            .firestore()
+            .collection(BUSINESS_COLLECTION)
+            .doc(requestedUser.businessId ?? requestedUser.business.businessId)
+            .collection(CONVERSATION_COLLECTION)
+            .doc(conversationId)
+            .collection(MESSAGES_COLLECTION)
+            .doc(messageId)
+            .update({
+                status,
+                readDate: status === 'read' ? admin.firestore.FieldValue.serverTimestamp() : null,
+            });
+
+        return true;
+    } catch (error) {
+        console.error(error);
+        throw new HttpsError('invalid-argument', error.message);
+    }
+});

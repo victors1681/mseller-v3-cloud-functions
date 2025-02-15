@@ -4,8 +4,6 @@ import { logger } from 'firebase-functions/v2';
 import { CallableRequest, HttpsError, onCall } from 'firebase-functions/v2/https';
 import { BUSINESS_COLLECTION, USER_COLLECTION } from '../index';
 
-const REGION = 'us-east1';
-
 export enum UserTypeEnum {
     seller = 'seller',
     administrator = 'administrator',
@@ -324,9 +322,11 @@ export const deleteUserV2Common = async (request: CallableRequest<string>) => {
 
 export const deleteUserV2 = onCall(deleteUserV2Common);
 
-export const userById = functions.region(REGION).https.onCall(async (userId, context) => {
+// export const userById = functions.region(REGION).https.onCall(async (userId, context) => {
+export const userById = onCall(async (context) => {
     try {
-        logger.warn('DEPRECATED userById function, use userByIdV2');
+        const userId = context.data.userId;
+        logger.warn('DEPRECATED userById function, use userByIdV2, migrated due to there still have traffic');
 
         if (!userId) {
             throw Error('userId is mandatory');
@@ -368,7 +368,8 @@ export const userByIdV2 = onCall(async ({ data, auth }) => {
 /**
  * based on the user request it get the user who is requesting and get the business id associated
  */
-export const getUsersRelated = functions.region(REGION).https.onCall(async (data, context) => {
+// export const getUsersRelated = functions.region(REGION).https.onCall(async (data, context) => {
+export const getUsersRelated = onCall(async (context) => {
     try {
         const requestedUser = await getCurrentUserInfo(context);
 
@@ -394,8 +395,10 @@ export const getUsersRelated = functions.region(REGION).https.onCall(async (data
 /**
  * Get user information by Access token, public resource
  */
-export const getUserByAccessToken = functions.region(REGION).https.onCall(async (data, context) => {
+// export const getUserByAccessToken = functions.region(REGION).https.onCall(async (data, context) => {
+export const getUserByAccessToken = onCall(async (context) => {
     try {
+        const data = context.data;
         const user = await admin.auth().verifyIdToken(data.accessToken, true);
         const userInfo = await getUserById(user.uid, true);
         return userInfo;

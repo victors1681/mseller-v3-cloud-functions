@@ -1,8 +1,9 @@
 import * as functions from 'firebase-functions';
-import { REGION } from '../index';
+import { onRequest } from 'firebase-functions/v2/https';
 import { getTextMessageInput, sendMessage } from './messageHelper';
 
-export const whatsappWebhook = functions.region(REGION).https.onRequest(async (req, res) => {
+// export const whatsappWebhook = functions.region(REGION).https.onRequest(async (req, res) => {
+export const whatsappWebhook = onRequest(async (req, res) => {
     if (req.method.toLocaleLowerCase() === 'post') {
         console.log(JSON.stringify(req.body));
 
