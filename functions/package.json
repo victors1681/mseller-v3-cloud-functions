@@ -19,7 +19,7 @@
     "save-emulator-data": "firebase emulators:export emulator-data"
   },
   "engines": {
-    "node": "14"
+    "node": "20"
   },
   "main": "lib/index.js",
   "dependencies": {

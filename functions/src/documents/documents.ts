@@ -91,9 +91,6 @@ const sendWhatsappNotification = async (data: any, url: string, businessId: stri
  * based on the user request it get the user who is requesting and get the business id associated
  */
 
-// export const generatePDF = functions.region(REGION).https.onCall(
-//     async (payload: any, context): Promise<{ url: string }> => {
-//         try {
 export const generatePDF = onCall(
     async (context): Promise<{ url: string }> => {
         try {
@@ -110,6 +107,9 @@ export const generatePDF = onCall(
             const userRecord = await admin.auth().getUser(context.auth.uid);
 
             const businessId = userRecord.customClaims?.business;
+            if (!businessId) {
+                throw new functions.https.HttpsError('invalid-argument', 'Business ID is missing.');
+            }
 
             const data = ['order', 'invoice', 'quote'].includes(payload.documentType)
                 ? (payload as Document)
@@ -126,20 +126,15 @@ export const generatePDF = onCall(
 
             const bucket = admin.storage().bucket();
             const file = bucket.file(path);
-            // const file = getStorage().bucket(BUCKET_NAME).file(path);
 
             if (['order', 'invoice', 'quote'].includes(data.documentType)) {
                 await createDocument(data, file);
             } else if (data.documentType === 'receipt') {
                 await createReceipt(data, file);
             }
-            // Create the invoice
+
             await file.makePublic();
             const url = file.publicUrl();
-
-            /**
-             * Send whatsapp notification only if whatsapp exist
-             */
 
             if (data.metadata.sendByWhatsapp && data.whatsapp?.template && data.whatsapp?.recipient) {
                 await sendWhatsappNotification(data, url, businessId);
@@ -151,25 +146,26 @@ export const generatePDF = onCall(
                 });
             }
 
-            // Send document by email
             if (data.metadata.sendByEmail) {
                 await sendGenericEmail(data, url, businessId);
             }
-            const firestore = admin.firestore();
 
+            const firestore = admin.firestore();
             const doc = {
                 path,
                 fileName,
                 data,
             };
+
             const docsRef = firestore
                 .collection(BUSINESS_COLLECTION)
                 .doc(businessId)
                 .collection(DOCUMENTS_COLLECTION)
                 .doc(fileName);
+
             await docsRef.set(doc);
 
-            return { url: url[0] };
+            return { url };
         } catch (error) {
             throw new functions.https.HttpsError('invalid-argument', error.message);
         }
